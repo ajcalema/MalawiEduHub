@@ -1,13 +1,14 @@
-# Render.com deployment configuration
+# Render.com FREE deployment configuration
 # This file tells Render how to build and deploy your backend
 
 services:
   - type: web
     name: malawieduhub-api
     env: node
-    plan: starter
-    buildCommand: npm install
-    startCommand: npm start
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
@@ -38,7 +39,7 @@ services:
       - key: JWT_REFRESH_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        value: https://your-vercel-domain.vercel.app
+        value: https://malawieduhub.vercel.app
       # Add your other secrets in Render dashboard:
       # - AWS_ACCESS_KEY_ID
       # - AWS_SECRET_ACCESS_KEY
@@ -47,6 +48,6 @@ services:
 
 databases:
   - name: malawieduhub-db
-    plan: starter
+    plan: free
     databaseName: malawieduhub
     user: malawieduhub
