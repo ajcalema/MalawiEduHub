@@ -252,10 +252,90 @@ const getRevenueSummary = async (req, res) => {
   }
 };
 
+// ─── TEST ONLY: Simulate Payment Success ─────
+// This endpoint allows testing payment flow without real mobile money
+const simulatePaymentSuccess = async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    
+    // Get payment details
+    const payResult = await query(
+      `SELECT * FROM payments WHERE id = $1 AND user_id = $2`,
+      [paymentId, req.user.id]
+    );
+    const payment = payResult.rows[0];
+    
+    if (!payment) {
+      return res.status(404).json({ error: 'Payment not found.' });
+    }
+    
+    if (payment.status === 'completed') {
+      return res.json({ message: 'Payment already completed.', payment });
+    }
+    
+    // Mark payment as completed
+    await query(
+      `UPDATE payments SET status = 'completed', completed_at = NOW(),
+       gateway_response = $1 WHERE id = $2`,
+      [JSON.stringify({ test_mode: true, simulated: true }), paymentId]
+    );
+    
+    // If subscription payment — create subscription
+    if (payment.payment_type === 'subscription') {
+      const plan = Object.keys(PLAN_PRICES).find(
+        p => PLAN_PRICES[p] === parseFloat(payment.amount_mwk)
+      );
+      
+      const subResult = await query(
+        `INSERT INTO subscriptions
+           (user_id, plan, status, starts_at, expires_at, payment_id)
+         VALUES ($1,$2,'active',NOW(),NOW() + INTERVAL '${PLAN_DURATIONS[plan]}',$3)
+         RETURNING id`,
+        [payment.user_id, plan, paymentId]
+      );
+      
+      await query(
+        `UPDATE payments SET subscription_id = $1 WHERE id = $2`,
+        [subResult.rows[0].id, paymentId]
+      );
+      
+      return res.json({
+        message: '✅ Payment simulated successfully! Subscription activated.',
+        payment_id: paymentId,
+        subscription_id: subResult.rows[0].id,
+        plan,
+        expires_at: new Date(Date.now() + getPlanDurationMs(plan)).toISOString(),
+      });
+    }
+    
+    // For per-download payments
+    res.json({
+      message: '✅ Payment simulated successfully! You can now download the document.',
+      payment_id: paymentId,
+      document_id: payment.document_id,
+    });
+    
+  } catch (err) {
+    console.error('simulatePaymentSuccess error:', err);
+    res.status(500).json({ error: 'Failed to simulate payment.' });
+  }
+};
+
+// Helper function to convert plan duration to milliseconds
+function getPlanDurationMs(plan) {
+  const durations = {
+    daily: 24 * 60 * 60 * 1000,
+    weekly: 7 * 24 * 60 * 60 * 1000,
+    monthly: 30 * 24 * 60 * 60 * 1000,
+  };
+  return durations[plan] || durations.daily;
+}
+
 module.exports = {
   initiateSubscription,
   initiatePerDownload,
   paymentWebhook,
   checkPaymentStatus,
   getRevenueSummary,
+  simulatePaymentSuccess, // Export test function
 };

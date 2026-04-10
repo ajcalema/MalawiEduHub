@@ -1074,7 +1074,7 @@ function EmptyPanel({ icon: Icon, title, sub }) {
 
 // ── Main admin page ───────────────────────────
 export default function AdminPage() {
-  const { user, isAdmin } = useAuth()
+  const { user, isAdmin, logout } = useAuth()
   const router = useRouter()
 
   const [tab,       setTab]       = useState('dashboard')
@@ -1267,8 +1267,24 @@ export default function AdminPage() {
               hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
             <RefreshCw size={13} /> Refresh
           </button>
-          <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-bold">
-            {user.full_name?.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()}
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-bold">
+              {user.full_name?.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()}
+            </div>
+            <button
+              onClick={async () => {
+                try {
+                  await logout()
+                  toast.success('Logged out successfully')
+                } catch (err) {
+                  toast.error('Logout failed')
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-red-600
+                hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors"
+            >
+              Logout
+            </button>
           </div>
         </header>
 

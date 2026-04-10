@@ -42,8 +42,13 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try {
       const refreshToken = Cookies.get('refreshToken')
-      await authApi.logout({ refreshToken })
-    } catch {}
+      if (refreshToken) {
+        await authApi.logout({ refreshToken })
+      }
+    } catch (err) {
+      console.error('Logout API error:', err)
+      // Continue with local logout even if API fails
+    }
     Cookies.remove('accessToken')
     Cookies.remove('refreshToken')
     Cookies.remove('user')

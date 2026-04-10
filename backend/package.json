@@ -7,7 +7,11 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "migrate": "node src/config/migrate.js",
-    "ensure-admin": "node scripts/ensure-admin.js"
+    "ensure-admin": "node scripts/ensure-admin.js",
+    "postinstall": "echo 'Dependencies installed'"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "express": "^4.18.2",

@@ -1,0 +1,52 @@
+# Render.com deployment configuration
+# This file tells Render how to build and deploy your backend
+
+services:
+  - type: web
+    name: malawieduhub-api
+    env: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DB_HOST
+        fromDatabase:
+          name: malawieduhub-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: malawieduhub-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: malawieduhub-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: malawieduhub-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: malawieduhub-db
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://your-vercel-domain.vercel.app
+      # Add your other secrets in Render dashboard:
+      # - AWS_ACCESS_KEY_ID
+      # - AWS_SECRET_ACCESS_KEY
+      # - PAYCHANGU_SECRET_KEY
+      # - PAYCHANGU_PUBLIC_KEY
+
+databases:
+  - name: malawieduhub-db
+    plan: starter
+    databaseName: malawieduhub
+    user: malawieduhub
