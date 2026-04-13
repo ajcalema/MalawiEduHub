@@ -50,7 +50,14 @@ const register = async (req, res) => {
     });
   } catch (err) {
     console.error('register error:', err);
-    res.status(500).json({ error: 'Registration failed.' });
+    // More detailed error for debugging
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Email or phone already registered.' });
+    }
+    if (err.code === '23502') {
+      return res.status(400).json({ error: 'Missing required fields.' });
+    }
+    res.status(500).json({ error: 'Registration failed.', details: err.message });
   }
 };
 
@@ -130,7 +137,7 @@ const login = async (req, res) => {
     });
   } catch (err) {
     console.error('login error:', err);
-    res.status(500).json({ error: 'Login failed.' });
+    res.status(500).json({ error: 'Login failed.', details: err.message });
   }
 };
 
