@@ -47,7 +47,7 @@ const DOC_TYPES = [
   { value: 'school_calendar',label: 'School Calendar',icon: Calendar },
 ]
 
-const YEARS = Array.from({ length: 15 }, (_, i) => String(2024 - i))
+const YEARS = Array.from({ length: 26 }, (_, i) => String(2030 - i))
 
 // ── Status badge ─────────────────────────────
 function StatusBadge({ status }) {

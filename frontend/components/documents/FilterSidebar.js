@@ -18,7 +18,7 @@ const DOC_TYPES = [
   { value: 'revision_guide', label: 'Revision Guides' },
 ]
 
-const YEARS = ['', ...Array.from({ length: 15 }, (_, i) => String(2024 - i))]
+const YEARS = ['', ...Array.from({ length: 26 }, (_, i) => String(2030 - i))]
 
 export default function FilterSidebar({ filters, onChange, subjects, onClose }) {
   const set = (key, val) => onChange({ ...filters, [key]: val, page: 1 })
