@@ -28,6 +28,8 @@ services:
         value: sec-test-WBkzHqND0w4kRJ4MBHQPqSLcJPmOMxtP
       - key: PAYCHANGU_PUBLIC_KEY
         value: pub-test-sHrctUFpd92KlxxqekxcZotoBgDpJuvc
+      - key: BACKEND_URL
+        value: https://malawieduhub-api.onrender.com
       # Add your other secrets in Render dashboard:
       # - AWS_ACCESS_KEY_ID
       # - AWS_SECRET_ACCESS_KEY
