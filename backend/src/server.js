@@ -13,17 +13,19 @@ app.use(cors({
   credentials: true,
 }));
 
-const globalLimiter = rateLimit({ windowMs: 15*60*1000, max: 200,
+const globalLimiter = rateLimit({ windowMs: 15*60*1000, max: 1000,
   message: { error: 'Too many requests. Try again later.' } });
 const authLimiter   = rateLimit({ windowMs: 15*60*1000, max: 50,
   message: { error: 'Too many login attempts. Wait 15 minutes.' } });
 
-app.use(globalLimiter);
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Serve uploaded files
+// Serve uploaded files (no rate limit for static files)
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
+// Apply rate limiter after static files
+app.use(globalLimiter);
 
 app.get('/health', (req, res) => res.json({ status: 'ok', platform: 'MalawiEduHub' }));
 
