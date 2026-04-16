@@ -81,9 +81,13 @@ function BrowseContent() {
 
   const handleDownload = async (doc) => {
     if (!user) { router.push('/auth/login'); return }
+    
+    // Check if user has access (subscription or upload pass)
+    const userHasAccess = hasAccess()
+    console.log('Download attempt:', { userId: user?.id, hasAccess: userHasAccess, docId: doc.id })
 
-    // If user has active subscription, download directly
-    if (hasAccess()) {
+    // If user has active subscription or upload pass, download directly
+    if (userHasAccess) {
       try {
         // Get the file as a blob
         const response = await api.get(`/documents/${doc.id}/download`, {
@@ -102,8 +106,21 @@ function BrowseContent() {
         
         toast.success('Download started!')
       } catch (err) {
+        console.error('Download error:', err)
         if (err?.response?.status === 403) {
           setAccessDoc(doc)
+        } else if (err?.response?.data) {
+          // Try to parse error from blob response
+          const reader = new FileReader()
+          reader.onload = () => {
+            try {
+              const errorData = JSON.parse(reader.result)
+              toast.error(errorData.error || 'Download failed.')
+            } catch {
+              toast.error('Download failed. Please try again.')
+            }
+          }
+          reader.readAsText(err.response.data)
         } else {
           toast.error('Download failed. Please try again.')
         }
