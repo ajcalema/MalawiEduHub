@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import AccessModal from '@/components/documents/AccessModal'
-import { documentsApi } from '@/lib/api'
+import api, { documentsApi } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import {
   Download, Eye, ChevronLeft, FileText, BookOpen, BookMarked,
@@ -45,14 +45,22 @@ export default function DocumentDetailPage() {
     if (!hasAccess()) { setShowModal(true); return }
     setDownloading(true)
     try {
-      const { data } = await documentsApi.download(id)
-      // Use anchor tag for better download handling
+      // Get the file as a blob
+      const response = await api.get(`/documents/${id}/download`, {
+        responseType: 'blob'
+      })
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]))
       const link = document.createElement('a')
-      link.href = data.download_url
+      link.href = url
       link.download = doc?.file_name_original || doc?.title || 'document'
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      
+      toast.success('Download started!')
     } catch (err) {
       if (err?.response?.status === 403) setShowModal(true)
       else toast.error('Download failed.')

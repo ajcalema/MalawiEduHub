@@ -5,7 +5,7 @@ import Navbar from '@/components/layout/Navbar'
 import DocumentCard from '@/components/documents/DocumentCard'
 import FilterSidebar from '@/components/documents/FilterSidebar'
 import AccessModal from '@/components/documents/AccessModal'
-import { documentsApi, subjectsApi, paymentsApi } from '@/lib/api'
+import api, { documentsApi, subjectsApi, paymentsApi } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -85,14 +85,22 @@ function BrowseContent() {
     // If user has active subscription, download directly
     if (hasAccess()) {
       try {
-        const { data } = await documentsApi.download(doc.id)
-        // Use anchor tag for better download handling
+        // Get the file as a blob
+        const response = await api.get(`/documents/${doc.id}/download`, {
+          responseType: 'blob'
+        })
+        
+        // Create download link
+        const url = window.URL.createObjectURL(new Blob([response.data]))
         const link = document.createElement('a')
-        link.href = data.download_url
-        link.download = doc.file_name_original || doc.title
+        link.href = url
+        link.download = doc.file_name_original || doc.title || 'document'
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+        
+        toast.success('Download started!')
       } catch (err) {
         if (err?.response?.status === 403) {
           setAccessDoc(doc)

@@ -544,19 +544,17 @@ const downloadDocument = async (req, res) => {
       });
     }
 
-    const baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 4000}`;
-    const downloadToken = uuidv4();
-    const downloadUrl = `${baseUrl}/api/documents/${id}/download?token=${downloadToken}`;
-
-    // Log the download request as a signed one-time access token
+    // Log the download
     await query(
       `INSERT INTO downloads
-         (user_id, document_id, payment_id, subscription_id, ip_address, signed_url_used)
-       VALUES ($1,$2,$3,$4,$5,$6)`,
-      [req.user.id, id, paymentId, subscriptionId, req.ip, downloadToken]
+         (user_id, document_id, payment_id, subscription_id, ip_address)
+       VALUES ($1,$2,$3,$4,$5)`,
+      [req.user.id, id, paymentId, subscriptionId, req.ip]
     );
 
-    res.json({ download_url: downloadUrl, expires_in_seconds: 3600 }); // 1 hour for local
+    // Direct download - serve file immediately
+    const downloadName = path.basename(doc.file_name_original || localFilePath);
+    return res.download(localFilePath, downloadName);
   } catch (err) {
     console.error('downloadDocument error:', err);
     res.status(500).json({ error: 'Download failed.', details: err.message });
