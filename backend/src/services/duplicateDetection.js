@@ -47,7 +47,7 @@ const checkMetadataDuplicate = async ({ title, level, subjectId, year }) => {
        AND level      = $2
        AND subject_id = $3
        AND year       = $4
-       AND similarity(LOWER(title), LOWER($1)) > 0.75
+       AND similarity(LOWER(title), LOWER($1)) > 0.90
      ORDER BY title_sim DESC
      LIMIT 1`,
     [title, level, subjectId, year]
@@ -260,7 +260,7 @@ const runDuplicateDetection = async ({
     };
   }
 
-  // Layer 2 — fuzzy metadata
+  // Layer 2 — fuzzy metadata (flag for review instead of auto-reject)
   const metaMatch = await checkMetadataDuplicate(metadata);
   if (metaMatch) {
     await logDuplicateAttempt({
@@ -270,15 +270,15 @@ const runDuplicateDetection = async ({
       matchedDocumentId: metaMatch.document.id,
       detectionLayer: 'metadata',
       similarityScore: metaMatch.score,
-      isAutoRejected: true,
+      isAutoRejected: false,
     });
     return {
       passed: false,
-      action: 'reject',
+      action: 'flag',
       layer: 'metadata',
       score: metaMatch.score,
       matchedDoc: metaMatch.document,
-      reason: `A document with very similar metadata already exists (${metaMatch.score}% match).`,
+      reason: `A document with very similar metadata already exists (${metaMatch.score}% match). Flagged for admin review.`,
     };
   }
 
