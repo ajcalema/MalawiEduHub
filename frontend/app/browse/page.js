@@ -86,7 +86,13 @@ function BrowseContent() {
     if (hasAccess()) {
       try {
         const { data } = await documentsApi.download(doc.id)
-        window.open(data.download_url, '_blank')
+        // Use anchor tag for better download handling
+        const link = document.createElement('a')
+        link.href = data.download_url
+        link.download = doc.file_name_original || doc.title
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
       } catch (err) {
         if (err?.response?.status === 403) {
           setAccessDoc(doc)
