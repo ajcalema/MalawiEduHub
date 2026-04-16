@@ -508,10 +508,10 @@ const downloadDocument = async (req, res) => {
     // Check 1: free document
     if (doc.is_free) hasAccess = true;
 
-    // Check 2: active subscription
+    // Check 2: active subscription (including upload pass)
     if (!hasAccess) {
       const sub = await query(
-        `SELECT id FROM subscriptions
+        `SELECT id, is_upload_pass FROM subscriptions
          WHERE user_id = $1 AND status = 'active' AND expires_at > NOW()
          LIMIT 1`,
         [req.user.id]
@@ -559,7 +559,7 @@ const downloadDocument = async (req, res) => {
     res.json({ download_url: downloadUrl, expires_in_seconds: 3600 }); // 1 hour for local
   } catch (err) {
     console.error('downloadDocument error:', err);
-    res.status(500).json({ error: 'Download failed.' });
+    res.status(500).json({ error: 'Download failed.', details: err.message });
   }
 };
 
