@@ -308,7 +308,10 @@ const forgotPassword = async (req, res) => {
         });
         console.log(`✅ Password reset email sent to ${user.email}`);
       } catch (emailErr) {
-        console.error('Failed to send email:', emailErr);
+        console.error('❌ Failed to send email:', emailErr.message);
+        if (emailErr.response) {
+          console.error('   Resend error details:', emailErr.response);
+        }
         // Continue - we'll still return success to user for security
       }
     } else {
