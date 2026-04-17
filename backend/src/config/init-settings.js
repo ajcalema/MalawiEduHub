@@ -50,6 +50,21 @@ const initSettings = async () => {
         key: 'contact_email',
         value: 'support@malawieduhub.com',
         description: 'Contact email address'
+      },
+      {
+        key: 'price_daily',
+        value: '300',
+        description: 'Daily subscription price (MWK)'
+      },
+      {
+        key: 'price_weekly',
+        value: '1000',
+        description: 'Weekly subscription price (MWK)'
+      },
+      {
+        key: 'price_monthly',
+        value: '2500',
+        description: 'Monthly subscription price (MWK)'
       }
     ];
 

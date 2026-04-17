@@ -9,6 +9,11 @@ export default function LandingPage() {
   const [recentDocs, setRecentDocs] = useState([])
   const [loading, setLoading] = useState(true)
   const [footerYear, setFooterYear] = useState(new Date().getFullYear())
+  const [prices, setPrices] = useState({
+    daily: '300',
+    weekly: '1000',
+    monthly: '2500'
+  })
 
   const scrollToSection = (e, id) => {
     e.preventDefault()
@@ -26,8 +31,15 @@ export default function LandingPage() {
         if (data.footer_year) {
           setFooterYear(data.footer_year)
         }
+        if (data.price_daily) {
+          setPrices({
+            daily: data.price_daily,
+            weekly: data.price_weekly,
+            monthly: data.price_monthly
+          })
+        }
       } catch (err) {
-        // Use default year if API fails
+        // Use defaults if API fails
       }
     }
     fetchSettings()
@@ -654,7 +666,7 @@ export default function LandingPage() {
               <div className="how-num">02<span>02</span></div>
               <h3>Subscribe for full access</h3>
               <p>Pay a small subscription fee for unlimited downloads. Daily, weekly, or monthly plans available — all payable via Airtel Money or TNM Mpamba, no bank account needed.</p>
-              <span className="tag-pill">From MWK 300/day</span>
+              <span className="tag-pill">From MWK {parseInt(prices.daily).toLocaleString()}/day</span>
             </div>
             <div className="how-card reveal">
               <div className="how-num">03<span>03</span></div>
@@ -785,7 +797,7 @@ export default function LandingPage() {
           <div className="pricing-grid">
             <div className="price-card reveal">
               <div className="price-name">Daily</div>
-              <div className="price-amount">MWK 300</div>
+              <div className="price-amount">MWK {parseInt(prices.daily).toLocaleString()}</div>
               <div className="price-period">per day</div>
               <div className="price-divider"></div>
               <div className="price-feature"><div className="price-check"><svg viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="#0d7a55" strokeWidth="1.4" strokeLinecap="round"/></svg></div>Unlimited downloads for 24 hours</div>
@@ -796,18 +808,18 @@ export default function LandingPage() {
             <div className="price-card featured reveal">
               <div className="popular-badge">Most popular</div>
               <div className="price-name">Monthly</div>
-              <div className="price-amount" style={{color:'#fff'}}>MWK 2,500</div>
+              <div className="price-amount" style={{color:'#fff'}}>MWK {parseInt(prices.monthly).toLocaleString()}</div>
               <div className="price-period">per month</div>
               <div className="price-divider"></div>
               <div className="price-feature"><div className="price-check"><svg viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="rgba(26,171,120,0.9)" strokeWidth="1.4" strokeLinecap="round"/></svg></div>Unlimited downloads all month</div>
               <div className="price-feature"><div className="price-check"><svg viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="rgba(26,171,120,0.9)" strokeWidth="1.4" strokeLinecap="round"/></svg></div>All subjects and levels</div>
               <div className="price-feature"><div className="price-check"><svg viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="rgba(26,171,120,0.9)" strokeWidth="1.4" strokeLinecap="round"/></svg></div>Priority access to new uploads</div>
-              <div className="price-feature"><div className="price-check"><svg viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="rgba(26,171,120,0.9)" strokeWidth="1.4" strokeLinecap="round"/></svg></div>Best value — saves MWK 4,500 vs daily</div>
+              <div className="price-feature"><div className="price-check"><svg viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="rgba(26,171,120,0.9)" strokeWidth="1.4" strokeLinecap="round"/></svg></div>Best value — saves MWK {(parseInt(prices.daily) * 30 - parseInt(prices.monthly)).toLocaleString()} vs daily</div>
               <Link href="/auth/register" className="price-btn price-btn-solid">Get monthly plan</Link>
             </div>
             <div className="price-card reveal">
               <div className="price-name">Weekly</div>
-              <div className="price-amount">MWK 1,000</div>
+              <div className="price-amount">MWK {parseInt(prices.weekly).toLocaleString()}</div>
               <div className="price-period">per week</div>
               <div className="price-divider"></div>
               <div className="price-feature"><div className="price-check"><svg viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="#0d7a55" strokeWidth="1.4" strokeLinecap="round"/></svg></div>Unlimited downloads for 7 days</div>
