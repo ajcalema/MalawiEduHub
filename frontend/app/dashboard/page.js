@@ -282,7 +282,21 @@ export default function DashboardPage() {
   const [loading,    setLoading]    = useState(true)
   const [tab,        setTab]        = useState('overview')
   const [showModal,  setShowModal]  = useState(false)
-  const [prices,     setPrices]     = useState({ daily: '300', weekly: '1000', monthly: '2500' })
+  const [prices,     setPrices]     = useState(() => {
+    // Try to load cached prices from localStorage
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('mh_prices')
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached)
+          if (parsed.daily && parsed.weekly && parsed.monthly) {
+            return parsed
+          }
+        } catch {}
+      }
+    }
+    return { daily: '300', weekly: '1000', monthly: '2500' }
+  })
   const [pricesLoading, setPricesLoading] = useState(true)
 
   useEffect(() => {
@@ -297,11 +311,14 @@ export default function DashboardPage() {
       const { data } = await api.get('/admin/settings/public')
       console.log('Fetched prices:', data)
       if (data.price_daily_mwk) {
-        setPrices({
+        const newPrices = {
           daily: data.price_daily_mwk,
           weekly: data.price_weekly_mwk,
           monthly: data.price_monthly_mwk
-        })
+        }
+        setPrices(newPrices)
+        // Cache prices in localStorage
+        localStorage.setItem('mh_prices', JSON.stringify(newPrices))
       }
     } catch (err) {
       console.error('Failed to fetch prices:', err)

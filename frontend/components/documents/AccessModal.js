@@ -24,7 +24,25 @@ export default function AccessModal({ doc, onClose, onSuccess }) {
   const [loading,   setLoading]   = useState(false)
   const [polling,   setPolling]   = useState(false)
   const [paymentId, setPaymentId] = useState(null)
-  const [plans,     setPlans]     = useState(DEFAULT_PLANS)
+  const [plans,     setPlans]     = useState(() => {
+    // Try to load cached prices from localStorage
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('mh_prices')
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached)
+          if (parsed.daily && parsed.weekly && parsed.monthly) {
+            return [
+              { key: 'daily',   label: 'Daily pass',    price: `MWK ${parseInt(parsed.daily).toLocaleString()}`,  period: '24 hours',  popular: false },
+              { key: 'monthly', label: 'Monthly plan',  price: `MWK ${parseInt(parsed.monthly).toLocaleString()}`,period: '30 days',   popular: true  },
+              { key: 'weekly',  label: 'Weekly pass',   price: `MWK ${parseInt(parsed.weekly).toLocaleString()}`, period: '7 days',    popular: false },
+            ]
+          }
+        } catch {}
+      }
+    }
+    return DEFAULT_PLANS
+  })
   const [pricesLoading, setPricesLoading] = useState(true)
 
   // Fetch dynamic pricing
@@ -34,11 +52,18 @@ export default function AccessModal({ doc, onClose, onSuccess }) {
       try {
         const { data } = await api.get('/admin/settings/public')
         if (data.price_daily_mwk) {
+          const newPrices = {
+            daily: data.price_daily_mwk,
+            weekly: data.price_weekly_mwk,
+            monthly: data.price_monthly_mwk
+          }
           setPlans([
             { key: 'daily',   label: 'Daily pass',    price: `MWK ${parseInt(data.price_daily_mwk).toLocaleString()}`,  period: '24 hours',  popular: false },
             { key: 'monthly', label: 'Monthly plan',  price: `MWK ${parseInt(data.price_monthly_mwk).toLocaleString()}`,period: '30 days',   popular: true  },
             { key: 'weekly',  label: 'Weekly pass',   price: `MWK ${parseInt(data.price_weekly_mwk).toLocaleString()}`, period: '7 days',    popular: false },
           ])
+          // Cache prices in localStorage
+          localStorage.setItem('mh_prices', JSON.stringify(newPrices))
         }
       } catch (err) {
         // Use default prices
