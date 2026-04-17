@@ -293,6 +293,7 @@ export default function DashboardPage() {
   const fetchPrices = async () => {
     try {
       const { data } = await api.get('/admin/settings/public')
+      console.log('Fetched prices:', data)
       if (data.price_daily_mwk) {
         setPrices({
           daily: data.price_daily_mwk,
@@ -301,7 +302,7 @@ export default function DashboardPage() {
         })
       }
     } catch (err) {
-      // Use default prices
+      console.error('Failed to fetch prices:', err)
     }
   }
 
