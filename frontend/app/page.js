@@ -31,11 +31,11 @@ export default function LandingPage() {
         if (data.footer_year) {
           setFooterYear(data.footer_year)
         }
-        if (data.price_daily) {
+        if (data.price_daily_mwk) {
           setPrices({
-            daily: data.price_daily,
-            weekly: data.price_weekly,
-            monthly: data.price_monthly
+            daily: data.price_daily_mwk,
+            weekly: data.price_weekly_mwk,
+            monthly: data.price_monthly_mwk
           })
         }
       } catch (err) {

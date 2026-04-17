@@ -52,17 +52,17 @@ const initSettings = async () => {
         description: 'Contact email address'
       },
       {
-        key: 'price_daily',
+        key: 'price_daily_mwk',
         value: '300',
         description: 'Daily subscription price (MWK)'
       },
       {
-        key: 'price_weekly',
+        key: 'price_weekly_mwk',
         value: '1000',
         description: 'Weekly subscription price (MWK)'
       },
       {
-        key: 'price_monthly',
+        key: 'price_monthly_mwk',
         value: '2500',
         description: 'Monthly subscription price (MWK)'
       }

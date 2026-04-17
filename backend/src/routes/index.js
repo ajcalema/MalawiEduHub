@@ -181,7 +181,7 @@ adminRouter.patch('/settings/:key', requireAuth, requireAdmin, async (req, res) 
 adminRouter.get('/settings/public', async (req, res) => {
   try {
     const result = await dbQuery(
-      `SELECT key, value FROM system_settings WHERE key IN ('footer_year', 'site_name', 'contact_email', 'price_daily', 'price_weekly', 'price_monthly')`
+      `SELECT key, value FROM system_settings WHERE key IN ('footer_year', 'site_name', 'contact_email', 'price_daily_mwk', 'price_weekly_mwk', 'price_monthly_mwk')`
     );
     const settings = {};
     result.rows.forEach(row => { settings[row.key] = row.value; });
