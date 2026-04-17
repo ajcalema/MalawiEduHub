@@ -1,13 +1,14 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { paymentsApi } from '@/lib/api'
+import api from '@/lib/api'
 import Button from '@/components/ui/Button'
 import toast from 'react-hot-toast'
 import { X, Upload, CreditCard, Smartphone, CheckCircle2, Loader2 } from 'lucide-react'
 
-const PLANS = [
+const DEFAULT_PLANS = [
   { key: 'daily',   label: 'Daily pass',    price: 'MWK 300',  period: '24 hours',  popular: false },
   { key: 'monthly', label: 'Monthly plan',  price: 'MWK 2,500',period: '30 days',   popular: true  },
   { key: 'weekly',  label: 'Weekly pass',   price: 'MWK 1,000',period: '7 days',    popular: false },
@@ -23,6 +24,26 @@ export default function AccessModal({ doc, onClose, onSuccess }) {
   const [loading,   setLoading]   = useState(false)
   const [polling,   setPolling]   = useState(false)
   const [paymentId, setPaymentId] = useState(null)
+  const [plans,     setPlans]     = useState(DEFAULT_PLANS)
+
+  // Fetch dynamic pricing
+  useEffect(() => {
+    const fetchPrices = async () => {
+      try {
+        const { data } = await api.get('/admin/settings/public')
+        if (data.price_daily_mwk) {
+          setPlans([
+            { key: 'daily',   label: 'Daily pass',    price: `MWK ${parseInt(data.price_daily_mwk).toLocaleString()}`,  period: '24 hours',  popular: false },
+            { key: 'monthly', label: 'Monthly plan',  price: `MWK ${parseInt(data.price_monthly_mwk).toLocaleString()}`,period: '30 days',   popular: true  },
+            { key: 'weekly',  label: 'Weekly pass',   price: `MWK ${parseInt(data.price_weekly_mwk).toLocaleString()}`, period: '7 days',    popular: false },
+          ])
+        }
+      } catch (err) {
+        // Use default prices
+      }
+    }
+    fetchPrices()
+  }, [])
 
   if (!user) {
     return (
@@ -143,7 +164,7 @@ export default function AccessModal({ doc, onClose, onSuccess }) {
 
       {tab === 'subscribe' ? (
         <div className="flex flex-col gap-3 mb-5">
-          {PLANS.map(p => (
+          {plans.map(p => (
             <button key={p.key} onClick={() => setPlan(p.key)}
               className={`relative flex items-center justify-between p-4 rounded-xl border-2 transition-all text-left ${
                 plan === p.key ? 'border-green-500 bg-green-50' : 'border-gray-100 hover:border-gray-200'

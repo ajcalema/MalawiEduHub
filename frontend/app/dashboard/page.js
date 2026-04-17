@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import { authApi, documentsApi, paymentsApi } from '@/lib/api'
+import api from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import toast from 'react-hot-toast'
 import {
@@ -41,7 +42,7 @@ function StatCard({ icon: Icon, label, value, sub, accent }) {
 }
 
 // ── Subscription status card ─────────────────
-function SubscriptionCard({ subscription, uploadProgress, onGetAccess }) {
+function SubscriptionCard({ subscription, uploadProgress, onGetAccess, prices }) {
   const hasActive = subscription && new Date(subscription.expires_at) > new Date()
   const expiresAt = subscription ? new Date(subscription.expires_at) : null
   const daysLeft  = expiresAt
@@ -128,9 +129,9 @@ function SubscriptionCard({ subscription, uploadProgress, onGetAccess }) {
 
           <div className="grid grid-cols-3 gap-2">
             {[
-              { label: 'Daily', price: 'MWK 300' },
-              { label: 'Weekly', price: 'MWK 1,000' },
-              { label: 'Monthly', price: 'MWK 2,500' },
+              { label: 'Daily', price: `MWK ${parseInt(prices.daily).toLocaleString()}` },
+              { label: 'Weekly', price: `MWK ${parseInt(prices.weekly).toLocaleString()}` },
+              { label: 'Monthly', price: `MWK ${parseInt(prices.monthly).toLocaleString()}` },
             ].map(p => (
               <button key={p.label} onClick={onGetAccess}
                 className="py-2.5 px-2 rounded-xl border-2 border-gray-100 hover:border-green-300 hover:bg-green-50
@@ -281,11 +282,28 @@ export default function DashboardPage() {
   const [loading,    setLoading]    = useState(true)
   const [tab,        setTab]        = useState('overview')
   const [showModal,  setShowModal]  = useState(false)
+  const [prices,     setPrices]     = useState({ daily: '300', weekly: '1000', monthly: '2500' })
 
   useEffect(() => {
     if (user === null) { router.push('/auth/login'); return }
     loadAll()
+    fetchPrices()
   }, [user])
+
+  const fetchPrices = async () => {
+    try {
+      const { data } = await api.get('/admin/settings/public')
+      if (data.price_daily_mwk) {
+        setPrices({
+          daily: data.price_daily_mwk,
+          weekly: data.price_weekly_mwk,
+          monthly: data.price_monthly_mwk
+        })
+      }
+    } catch (err) {
+      // Use default prices
+    }
+  }
 
   const loadAll = async () => {
     setLoading(true)
@@ -419,6 +437,7 @@ export default function DashboardPage() {
                 subscription={sub}
                 uploadProgress={uploadProgress}
                 onGetAccess={() => router.push('/browse')}
+                prices={prices}
               />
 
               {/* Quick actions */}
@@ -589,9 +608,9 @@ export default function DashboardPage() {
                 <p className="text-xs text-gray-500 mb-3 font-medium">Subscribe to access all documents</p>
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { label: 'Daily',   price: 'MWK 300',   period: '24 hours' },
-                    { label: 'Weekly',  price: 'MWK 1,000', period: '7 days',  pop: true },
-                    { label: 'Monthly', price: 'MWK 2,500', period: '30 days' },
+                    { label: 'Daily',   price: `MWK ${parseInt(prices.daily).toLocaleString()}`,   period: '24 hours' },
+                    { label: 'Weekly',  price: `MWK ${parseInt(prices.weekly).toLocaleString()}`, period: '7 days',  pop: true },
+                    { label: 'Monthly', price: `MWK ${parseInt(prices.monthly).toLocaleString()}`, period: '30 days' },
                   ].map(p => (
                     <button key={p.label} onClick={() => router.push('/browse')}
                       className={`py-3 px-2 rounded-xl border-2 text-center transition-all hover:-translate-y-0.5
