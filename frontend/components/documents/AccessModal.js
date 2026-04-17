@@ -25,10 +25,12 @@ export default function AccessModal({ doc, onClose, onSuccess }) {
   const [polling,   setPolling]   = useState(false)
   const [paymentId, setPaymentId] = useState(null)
   const [plans,     setPlans]     = useState(DEFAULT_PLANS)
+  const [pricesLoading, setPricesLoading] = useState(true)
 
   // Fetch dynamic pricing
   useEffect(() => {
     const fetchPrices = async () => {
+      setPricesLoading(true)
       try {
         const { data } = await api.get('/admin/settings/public')
         if (data.price_daily_mwk) {
@@ -40,6 +42,8 @@ export default function AccessModal({ doc, onClose, onSuccess }) {
         }
       } catch (err) {
         // Use default prices
+      } finally {
+        setPricesLoading(false)
       }
     }
     fetchPrices()
@@ -179,7 +183,9 @@ export default function AccessModal({ doc, onClose, onSuccess }) {
                 <p className={`text-xs mt-0.5 ${plan === p.key ? 'text-green-600' : 'text-gray-400'}`}>Unlimited downloads · {p.period}</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`font-bold text-sm ${plan === p.key ? 'text-green-700' : 'text-gray-700'}`}>{p.price}</span>
+                <span className={`font-bold text-sm ${plan === p.key ? 'text-green-700' : 'text-gray-700'}`}>
+                  {pricesLoading ? '...' : p.price}
+                </span>
                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                   plan === p.key ? 'border-green-500 bg-green-500' : 'border-gray-300'
                 }`}>
