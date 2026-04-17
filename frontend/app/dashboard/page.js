@@ -42,7 +42,7 @@ function StatCard({ icon: Icon, label, value, sub, accent }) {
 }
 
 // ── Subscription status card ─────────────────
-function SubscriptionCard({ subscription, uploadProgress, onGetAccess, prices }) {
+function SubscriptionCard({ subscription, uploadProgress, onGetAccess, prices, pricesLoading }) {
   const hasActive = subscription && new Date(subscription.expires_at) > new Date()
   const expiresAt = subscription ? new Date(subscription.expires_at) : null
   const daysLeft  = expiresAt
@@ -129,9 +129,9 @@ function SubscriptionCard({ subscription, uploadProgress, onGetAccess, prices })
 
           <div className="grid grid-cols-3 gap-2">
             {[
-              { label: 'Daily', price: `MWK ${parseInt(prices.daily).toLocaleString()}` },
-              { label: 'Weekly', price: `MWK ${parseInt(prices.weekly).toLocaleString()}` },
-              { label: 'Monthly', price: `MWK ${parseInt(prices.monthly).toLocaleString()}` },
+              { label: 'Daily', price: pricesLoading ? '...' : `MWK ${parseInt(prices.daily).toLocaleString()}` },
+              { label: 'Weekly', price: pricesLoading ? '...' : `MWK ${parseInt(prices.weekly).toLocaleString()}` },
+              { label: 'Monthly', price: pricesLoading ? '...' : `MWK ${parseInt(prices.monthly).toLocaleString()}` },
             ].map(p => (
               <button key={p.label} onClick={onGetAccess}
                 className="py-2.5 px-2 rounded-xl border-2 border-gray-100 hover:border-green-300 hover:bg-green-50
@@ -283,6 +283,7 @@ export default function DashboardPage() {
   const [tab,        setTab]        = useState('overview')
   const [showModal,  setShowModal]  = useState(false)
   const [prices,     setPrices]     = useState({ daily: '300', weekly: '1000', monthly: '2500' })
+  const [pricesLoading, setPricesLoading] = useState(true)
 
   useEffect(() => {
     if (user === null) { router.push('/auth/login'); return }
@@ -291,6 +292,7 @@ export default function DashboardPage() {
   }, [user])
 
   const fetchPrices = async () => {
+    setPricesLoading(true)
     try {
       const { data } = await api.get('/admin/settings/public')
       console.log('Fetched prices:', data)
@@ -303,6 +305,8 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error('Failed to fetch prices:', err)
+    } finally {
+      setPricesLoading(false)
     }
   }
 
@@ -439,6 +443,7 @@ export default function DashboardPage() {
                 uploadProgress={uploadProgress}
                 onGetAccess={() => router.push('/browse')}
                 prices={prices}
+                pricesLoading={pricesLoading}
               />
 
               {/* Quick actions */}
@@ -609,9 +614,9 @@ export default function DashboardPage() {
                 <p className="text-xs text-gray-500 mb-3 font-medium">Subscribe to access all documents</p>
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { label: 'Daily',   price: `MWK ${parseInt(prices.daily).toLocaleString()}`,   period: '24 hours' },
-                    { label: 'Weekly',  price: `MWK ${parseInt(prices.weekly).toLocaleString()}`, period: '7 days',  pop: true },
-                    { label: 'Monthly', price: `MWK ${parseInt(prices.monthly).toLocaleString()}`, period: '30 days' },
+                    { label: 'Daily',   price: pricesLoading ? '...' : `MWK ${parseInt(prices.daily).toLocaleString()}`,   period: '24 hours' },
+                    { label: 'Weekly',  price: pricesLoading ? '...' : `MWK ${parseInt(prices.weekly).toLocaleString()}`, period: '7 days',  pop: true },
+                    { label: 'Monthly', price: pricesLoading ? '...' : `MWK ${parseInt(prices.monthly).toLocaleString()}`, period: '30 days' },
                   ].map(p => (
                     <button key={p.label} onClick={() => router.push('/browse')}
                       className={`py-3 px-2 rounded-xl border-2 text-center transition-all hover:-translate-y-0.5
