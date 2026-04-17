@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { documentsApi } from '@/lib/api'
+import api from '@/lib/api'
 
 export default function LandingPage() {
   const [recentDocs, setRecentDocs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [footerYear, setFooterYear] = useState(new Date().getFullYear())
 
   const scrollToSection = (e, id) => {
     e.preventDefault()
@@ -15,6 +17,21 @@ export default function LandingPage() {
       element.scrollIntoView({ behavior: 'smooth' })
     }
   }
+
+  // Fetch footer year
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const { data } = await api.get('/admin/settings/public')
+        if (data.footer_year) {
+          setFooterYear(data.footer_year)
+        }
+      } catch (err) {
+        // Use default year if API fails
+      }
+    }
+    fetchSettings()
+  }, [])
 
   useEffect(() => {
     const fetchRecentDocs = async () => {
@@ -908,7 +925,7 @@ export default function LandingPage() {
           </div>
         </div>
         <div className="footer-bottom">
-          <div className="footer-copy">© 2025 MalawiEduHub. All rights reserved.</div>
+          <div className="footer-copy">© {footerYear} MalawiEduHub. All rights reserved.</div>
           <div className="footer-payments">
             <span style={{fontSize:'12px', color:'rgba(255,255,255,0.3)', marginRight:'4px'}}>Payments via</span>
             <div className="pay-badge">AIRTEL MONEY</div>

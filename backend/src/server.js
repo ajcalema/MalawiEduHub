@@ -50,6 +50,7 @@ const PORT = process.env.PORT || 4000;
 // Initialize database tables on startup
 const { initTables } = require('./config/init-tables');
 const { initPerformanceIndexes } = require('./config/init-performance');
+const { initSettings } = require('./config/init-settings');
 
 app.listen(PORT, async () => {
   console.log(`\n🚀 MalawiEduHub API running on port ${PORT}`);
@@ -60,6 +61,9 @@ app.listen(PORT, async () => {
   
   // Create performance indexes
   await initPerformanceIndexes();
+  
+  // Initialize default settings
+  await initSettings();
 });
 
 module.exports = app;

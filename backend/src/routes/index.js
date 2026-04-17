@@ -177,4 +177,18 @@ adminRouter.patch('/settings/:key', requireAuth, requireAdmin, async (req, res) 
   }
 });
 
+// Public settings endpoint (for footer year, etc.)
+adminRouter.get('/settings/public', async (req, res) => {
+  try {
+    const result = await dbQuery(
+      `SELECT key, value FROM system_settings WHERE key IN ('footer_year', 'site_name', 'contact_email')`
+    );
+    const settings = {};
+    result.rows.forEach(row => { settings[row.key] = row.value; });
+    res.json(settings);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch settings.' });
+  }
+});
+
 module.exports = adminRouter;
