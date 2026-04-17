@@ -7,6 +7,10 @@ const {
   verifyRefreshToken,
   hashToken,
 } = require('../utils/jwt');
+const { Resend } = require('resend');
+
+// Initialize Resend if API key is available
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // ─── REGISTER ───────────────────────────────
 const register = async (req, res) => {
@@ -270,18 +274,52 @@ const forgotPassword = async (req, res) => {
       [user.id, tokenHash]
     );
 
-    // In production, send email here with reset link
-    // For now, return the token in the response (for testing)
+    // Generate reset URL
     const resetUrl = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
 
-    console.log('\n🔐 Password Reset Request:');
-    console.log(`   User: ${user.email}`);
-    console.log(`   Reset URL: ${resetUrl}\n`);
+    // Send email using Resend
+    if (resend) {
+      try {
+        const emailFrom = process.env.EMAIL_FROM || 'MalawiEduHub <noreply@malawieduhub.com>';
+        await resend.emails.send({
+          from: emailFrom,
+          to: user.email,
+          subject: 'Password Reset - MalawiEduHub',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #1aab78;">Password Reset Request</h2>
+              <p>Hello ${user.full_name},</p>
+              <p>You requested a password reset for your MalawiEduHub account.</p>
+              <p>Click the button below to reset your password:</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${resetUrl}" 
+                   style="background-color: #1aab78; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
+                  Reset Password
+                </a>
+              </div>
+              <p>Or copy and paste this link in your browser:</p>
+              <p style="word-break: break-all; color: #666;">${resetUrl}</p>
+              <p>This link will expire in 1 hour.</p>
+              <p>If you didn't request this, please ignore this email.</p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+              <p style="color: #999; font-size: 12px;">MalawiEduHub - Malawi's Knowledge Hub</p>
+            </div>
+          `,
+        });
+        console.log(`✅ Password reset email sent to ${user.email}`);
+      } catch (emailErr) {
+        console.error('Failed to send email:', emailErr);
+        // Continue - we'll still return success to user for security
+      }
+    } else {
+      console.log('\n⚠️  Resend not configured. Email not sent.');
+      console.log(`   Reset URL: ${resetUrl}\n`);
+    }
 
     res.json({
       message: 'If an account exists with this email, you will receive a password reset link.',
-      // Only include these in development/testing
-      ...(process.env.NODE_ENV !== 'production' && {
+      // Only include these in development/testing or if email failed
+      ...(process.env.NODE_ENV !== 'production' && !resend && {
         reset_token: resetToken,
         reset_url: resetUrl,
       }),
