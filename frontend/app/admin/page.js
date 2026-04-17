@@ -771,7 +771,10 @@ function TabSettings({ settings, loading, onSave }) {
   ]
   const metaByKey = Object.fromEntries(DISPLAY_KEYS.map((d) => [d.key, d]))
 
-  const sortedSettings = [...(settings || [])].sort((a, b) => {
+  // Only show settings that are defined in DISPLAY_KEYS (filter out duplicates/unknown settings)
+  const filteredSettings = (settings || []).filter((s) => DISPLAY_KEYS.some((d) => d.key === s.key))
+  
+  const sortedSettings = [...filteredSettings].sort((a, b) => {
     const ia = DISPLAY_KEYS.findIndex((d) => d.key === a.key)
     const ib = DISPLAY_KEYS.findIndex((d) => d.key === b.key)
     if (ia === -1 && ib === -1) return a.key.localeCompare(b.key)
