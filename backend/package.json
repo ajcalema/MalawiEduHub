@@ -8,6 +8,7 @@
     "dev": "nodemon src/server.js",
     "migrate": "node src/config/migrate.js",
     "ensure-admin": "node scripts/ensure-admin.js",
+    "cleanup-ghosts": "node scripts/cleanup-ghost-documents.js",
     "postinstall": "echo 'Dependencies installed'"
   },
   "engines": {
