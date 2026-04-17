@@ -280,7 +280,8 @@ const forgotPassword = async (req, res) => {
     // Send email using Resend
     if (resend) {
       try {
-        const emailFrom = process.env.EMAIL_FROM || 'MalawiEduHub <noreply@malawieduhub.com>';
+        // Use Resend's test domain if no verified domain
+        const emailFrom = process.env.EMAIL_FROM || 'MalawiEduHub <onboarding@resend.dev>';
         await resend.emails.send({
           from: emailFrom,
           to: user.email,
