@@ -50,11 +50,28 @@ export default function DocumentDetailPage() {
         responseType: 'blob'
       })
       
-      // Create download link
-      const url = window.URL.createObjectURL(new Blob([response.data]))
+      // Get the filename from the Content-Disposition header or use original
+      const contentDisposition = response.headers['content-disposition']
+      let filename = doc?.file_name_original || doc?.title || 'document'
+      
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?([^"]+)"?/)
+        if (match) filename = match[1]
+      }
+      
+      // Ensure filename has proper extension
+      if (!filename.includes('.')) {
+        const ext = doc?.file_type || 'pdf'
+        filename = `${filename}.${ext}`
+      }
+      
+      // Create download link with proper MIME type
+      const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/octet-stream' })
+      const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = doc?.file_name_original || doc?.title || 'document'
+      link.download = filename
+      link.style.display = 'none'
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
