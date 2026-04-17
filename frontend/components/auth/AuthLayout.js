@@ -55,17 +55,24 @@ export default function AuthLayout({ children, side }) {
         </Link>
 
         <div className="w-full max-w-md">
-          <nav className="mb-6 flex flex-wrap items-center gap-x-1 gap-y-2 text-sm" aria-label="Leave sign-in">
+          <nav className="mb-8 flex items-center justify-between text-sm" aria-label="Leave sign-in">
             <Link
               href="/browse"
-              className="text-gray-500 hover:text-green-600 no-underline font-medium transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-50 text-gray-700 hover:bg-green-50 hover:text-green-700 no-underline font-semibold transition-all border border-gray-100 hover:border-green-200"
             >
-              ← Back to library
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back to library
             </Link>
-            <span className="text-gray-300 mx-2 hidden sm:inline" aria-hidden>
-              ·
-            </span>
-            <Link href="/" className="text-gray-500 hover:text-green-600 no-underline font-medium transition-colors">
+            <Link 
+              href="/" 
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-50 text-gray-700 hover:bg-green-50 hover:text-green-700 no-underline font-semibold transition-all border border-gray-100 hover:border-green-200"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
               Home
             </Link>
           </nav>
