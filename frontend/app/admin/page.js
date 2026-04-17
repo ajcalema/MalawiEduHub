@@ -758,6 +758,9 @@ function TabSettings({ settings, loading, onSave }) {
   }
 
   const DISPLAY_KEYS = [
+    { key: 'footer_year',                label: 'Footer year',                 desc: 'Copyright year shown in footer',            type: 'number' },
+    { key: 'site_name',                  label: 'Site name',                   desc: 'Website name',                              type: 'text' },
+    { key: 'contact_email',              label: 'Contact email',               desc: 'Contact email address',                     type: 'text' },
     { key: 'upload_pass_min_threshold',  label: 'Upload pass threshold',       desc: 'Min uploads needed for free 1-day pass',    type: 'number' },
     { key: 'upload_pass_duration_hours', label: 'Upload pass duration (hours)',desc: 'How long the upload-earned pass lasts',      type: 'number' },
     { key: 'dup_auto_reject_threshold',  label: 'Auto-reject threshold (%)',   desc: 'Similarity above this % = auto reject',     type: 'number' },
