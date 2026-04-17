@@ -46,9 +46,16 @@ app.use((err, req, res, next) => {
 app.use((req, res) => res.status(404).json({ error: 'Route not found.' }));
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
+
+// Initialize database tables on startup
+const { initTables } = require('./config/init-tables');
+
+app.listen(PORT, async () => {
   console.log(`\n🚀 MalawiEduHub API running on port ${PORT}`);
   console.log(`   Health: http://localhost:${PORT}/health\n`);
+  
+  // Create missing tables
+  await initTables();
 });
 
 module.exports = app;
