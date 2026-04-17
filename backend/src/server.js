@@ -34,6 +34,7 @@ app.use('/api/documents',                 require('./routes/documents'));
 app.use('/api/payments',                 require('./routes/payments'));
 app.use('/api/subjects',                 require('./routes/subjects'));
 app.use('/api/admin',                    require('./routes/admin'));
+app.use('/api/cleanup',                  require('./routes/cleanup'));
 
 app.use((err, req, res, next) => {
   if (err.message?.includes('Only PDF'))  return res.status(400).json({ error: err.message });
