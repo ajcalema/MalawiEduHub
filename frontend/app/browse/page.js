@@ -46,6 +46,15 @@ function BrowseContent() {
     }
   }, [])
 
+  // Watch for URL search param changes (from Navbar search)
+  useEffect(() => {
+    const urlSearch = searchParams.get('search') || ''
+    if (urlSearch !== search) {
+      setSearch(urlSearch)
+      setSearchInput(urlSearch)
+    }
+  }, [searchParams])
+
   // Load subjects once
   useEffect(() => {
     subjectsApi.list()
