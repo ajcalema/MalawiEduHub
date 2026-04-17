@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { adminApi, documentsApi, paymentsApi, subjectsApi } from '@/lib/api'
+import api, { adminApi, documentsApi, paymentsApi, subjectsApi } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import toast from 'react-hot-toast'
 import {
@@ -12,7 +12,7 @@ import {
   Loader2, RefreshCw, TrendingUp, AlertTriangle,
   BookOpen, Clock, Ban, Edit2, Save, X, Menu,
   DollarSign, Activity, BookMarked, ClipboardList,
-  GraduationCap, Calendar
+  GraduationCap, Calendar, Trash2
 } from 'lucide-react'
 
 // ── Sidebar nav items ────────────────────────
@@ -710,6 +710,37 @@ function TabRevenue({ revenue, loading }) {
 function TabSettings({ settings, loading, onSave }) {
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState({})
+  const [cleanupLoading, setCleanupLoading] = useState(false)
+  const [cleanupPreview, setCleanupPreview] = useState(null)
+
+  const handleCleanupPreview = async () => {
+    setCleanupLoading(true)
+    try {
+      const { data } = await api.get('/cleanup/ghost-documents')
+      setCleanupPreview(data)
+      toast.success(`Found ${data.ghost_count} ghost documents`)
+    } catch (err) {
+      toast.error('Failed to preview ghost documents')
+    } finally {
+      setCleanupLoading(false)
+    }
+  }
+
+  const handleCleanupDelete = async () => {
+    if (!confirm(`Are you sure you want to delete ${cleanupPreview?.ghost_count} ghost documents? This cannot be undone!`)) {
+      return
+    }
+    setCleanupLoading(true)
+    try {
+      const { data } = await api.delete('/cleanup/ghost-documents')
+      toast.success(`Deleted ${data.deleted} ghost documents`)
+      setCleanupPreview(null)
+    } catch (err) {
+      toast.error('Failed to delete ghost documents')
+    } finally {
+      setCleanupLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (settings) {
@@ -789,6 +820,71 @@ function TabSettings({ settings, loading, onSave }) {
             </div>
           )
         })}
+      </div>
+      
+      {/* Cleanup Ghost Documents Section */}
+      <div className="px-5 py-4 border-t border-gray-100 mt-4">
+        <h3 className="text-sm font-semibold text-gray-900 mb-2">Maintenance</h3>
+        <p className="text-xs text-gray-500 mb-3">
+          Ghost documents are documents in the database but missing files in storage (from before Supabase migration).
+        </p>
+        
+        {!cleanupPreview ? (
+          <button
+            onClick={handleCleanupPreview}
+            disabled={cleanupLoading}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-orange-700 bg-orange-50 
+              border border-orange-200 rounded-xl hover:bg-orange-100 transition-all disabled:opacity-50"
+          >
+            {cleanupLoading ? <Loader2 size={16} className="animate-spin" /> : <AlertTriangle size={16} />}
+            Find Ghost Documents
+          </button>
+        ) : (
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm font-medium text-orange-900">
+                  Found {cleanupPreview.ghost_count} ghost documents
+                </p>
+                <p className="text-xs text-orange-700">
+                  {cleanupPreview.valid_count} valid documents will be kept
+                </p>
+              </div>
+              <button
+                onClick={() => setCleanupPreview(null)}
+                className="text-xs text-orange-600 hover:text-orange-800"
+              >
+                Cancel
+              </button>
+            </div>
+            
+            {cleanupPreview.ghosts.length > 0 && (
+              <div className="mb-3 max-h-32 overflow-y-auto">
+                <p className="text-xs font-medium text-orange-800 mb-1">Documents to delete:</p>
+                {cleanupPreview.ghosts.slice(0, 10).map((ghost) => (
+                  <p key={ghost.id} className="text-xs text-orange-700 truncate">
+                    • {ghost.title}
+                  </p>
+                ))}
+                {cleanupPreview.ghosts.length > 10 && (
+                  <p className="text-xs text-orange-600">
+                    ... and {cleanupPreview.ghosts.length - 10} more
+                  </p>
+                )}
+              </div>
+            )}
+            
+            <button
+              onClick={handleCleanupDelete}
+              disabled={cleanupLoading || cleanupPreview.ghost_count === 0}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white 
+                bg-red-500 rounded-xl hover:bg-red-600 transition-all disabled:opacity-50"
+            >
+              {cleanupLoading ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+              Delete {cleanupPreview.ghost_count} Ghost Documents
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
