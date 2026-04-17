@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import toast from 'react-hot-toast'
 import { Loader2 } from 'lucide-react'
 
-export default function AuthCallbackPage() {
+function CallbackHandler() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { setTokens } = useAuth()
@@ -41,5 +41,20 @@ export default function AuthCallbackPage() {
         <p className="text-gray-500">Please wait while we authenticate you.</p>
       </div>
     </div>
+  )
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 size={48} className="text-green-500 animate-spin mx-auto mb-4" />
+          <h1 className="text-xl font-semibold text-gray-800 mb-2">Loading...</h1>
+        </div>
+      </div>
+    }>
+      <CallbackHandler />
+    </Suspense>
   )
 }
