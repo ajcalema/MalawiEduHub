@@ -500,6 +500,21 @@ export default function LandingPage() {
         /* ANIMATIONS */
         .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
         .reveal.visible { opacity: 1; transform: none; }
+        
+        /* Mobile: reduce animation complexity */
+        @media (max-width: 560px) {
+          .reveal { transition: opacity 0.3s ease; transform: none; }
+          .how-card { transition: none; }
+          .how-card:hover { transform: none; }
+          .price-card { transition: none; }
+          .price-card:hover { transform: none; }
+          .subj-card { transition: none; }
+          .subj-card:hover { transform: none; }
+          .doc-type-card { transition: none; }
+          .doc-type-card:hover { transform: none; }
+          .feat-card { transition: none; }
+          .feat-card:hover { transform: none; }
+        }
       `}</style>
       
       {/* NAV */}
@@ -903,16 +918,24 @@ export default function LandingPage() {
       </footer>
 
       <script dangerouslySetInnerHTML={{__html: `
-        const reveals = document.querySelectorAll('.reveal');
-        const observer = new IntersectionObserver((entries) => {
-          entries.forEach((entry, i) => {
-            if (entry.isIntersecting) {
-              setTimeout(() => entry.target.classList.add('visible'), i * 80);
-              observer.unobserve(entry.target);
-            }
-          });
-        }, { threshold: 0.1 });
-        reveals.forEach(el => observer.observe(el));
+        // Disable animations on mobile for better performance
+        const isMobile = window.matchMedia('(pointer: coarse)').matches;
+        
+        if (isMobile) {
+          // Show all elements immediately on mobile
+          document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
+        } else {
+          const reveals = document.querySelectorAll('.reveal');
+          const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry, i) => {
+              if (entry.isIntersecting) {
+                setTimeout(() => entry.target.classList.add('visible'), i * 80);
+                observer.unobserve(entry.target);
+              }
+            });
+          }, { threshold: 0.1, rootMargin: '50px' });
+          reveals.forEach(el => observer.observe(el));
+        }
       `}} />
     </>
   )
