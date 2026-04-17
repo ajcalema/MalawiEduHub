@@ -80,7 +80,18 @@ const uploadDocument = async (req, res) => {
     const fileKey = `documents/${req.user.id}/${uuidv4()}.${fileType}`;
 
     // Upload to Supabase Storage
-    const publicUrl = await uploadFile(fileBuffer, fileKey, file.mimetype);
+    let publicUrl;
+    try {
+      publicUrl = await uploadFile(fileBuffer, fileKey, file.mimetype);
+      console.log('✅ File uploaded to Supabase:', publicUrl);
+    } catch (uploadErr) {
+      console.error('❌ Supabase upload error:', uploadErr.message);
+      await client.query('ROLLBACK');
+      return res.status(500).json({ 
+        error: 'Upload failed', 
+        details: uploadErr.message 
+      });
+    }
 
     const autoApprove = dupResult.passed === true;
     const docStatus = dupResult.action === 'flag' ? 'flagged' : 'pending';
