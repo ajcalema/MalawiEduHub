@@ -286,18 +286,30 @@ export default function DashboardPage() {
     // Try to load cached prices from localStorage
     if (typeof window !== 'undefined') {
       const cached = localStorage.getItem('mh_prices')
+      console.log('Dashboard - Cached prices:', cached)
       if (cached) {
         try {
           const parsed = JSON.parse(cached)
           if (parsed.daily && parsed.weekly && parsed.monthly) {
+            console.log('Dashboard - Using cached prices:', parsed)
             return parsed
           }
-        } catch {}
+        } catch (e) {
+          console.error('Dashboard - Failed to parse cached prices:', e)
+        }
       }
     }
+    console.log('Dashboard - Using default prices')
     return { daily: '300', weekly: '1000', monthly: '2500' }
   })
-  const [pricesLoading, setPricesLoading] = useState(true)
+  const [pricesLoading, setPricesLoading] = useState(() => {
+    // If we have cached prices, don't show loading state
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('mh_prices')
+      return !cached
+    }
+    return true
+  })
 
   useEffect(() => {
     if (user === null) { router.push('/auth/login'); return }
@@ -319,6 +331,7 @@ export default function DashboardPage() {
         setPrices(newPrices)
         // Cache prices in localStorage
         localStorage.setItem('mh_prices', JSON.stringify(newPrices))
+        console.log('Dashboard - Saved prices to cache:', newPrices)
       }
     } catch (err) {
       console.error('Failed to fetch prices:', err)
