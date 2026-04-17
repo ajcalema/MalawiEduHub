@@ -526,8 +526,20 @@ const downloadDocument = async (req, res) => {
       const fileBuffer = await downloadFile(doc.file_url);
       const downloadName = path.basename(doc.file_name_original || doc.file_url);
       
+      // Determine MIME type based on file extension
+      const ext = path.extname(downloadName).toLowerCase();
+      const mimeTypes = {
+        '.pdf': 'application/pdf',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.doc': 'application/msword',
+        '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        '.ppt': 'application/vnd.ms-powerpoint',
+        '.txt': 'text/plain',
+      };
+      const contentType = mimeTypes[ext] || 'application/octet-stream';
+      
       res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
-      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Type', contentType);
       res.send(fileBuffer);
     } catch (downloadErr) {
       console.error('Supabase download error:', downloadErr);
