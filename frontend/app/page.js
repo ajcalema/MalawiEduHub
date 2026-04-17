@@ -19,15 +19,37 @@ export default function LandingPage() {
   useEffect(() => {
     const fetchRecentDocs = async () => {
       try {
+        // Check cache first (5 minutes)
+        const cached = sessionStorage.getItem('recentDocs')
+        const cachedTime = sessionStorage.getItem('recentDocsTime')
+        const now = Date.now()
+        
+        if (cached && cachedTime && (now - parseInt(cachedTime)) < 5 * 60 * 1000) {
+          setRecentDocs(JSON.parse(cached))
+          setLoading(false)
+          return
+        }
+        
         const { data } = await documentsApi.browse({ sort: 'newest', limit: 3 })
-        setRecentDocs(data?.documents || [])
+        const docs = data?.documents || []
+        
+        // Cache the results
+        sessionStorage.setItem('recentDocs', JSON.stringify(docs))
+        sessionStorage.setItem('recentDocsTime', now.toString())
+        
+        setRecentDocs(docs)
       } catch (err) {
         console.error('Failed to fetch recent documents:', err)
+        // Use empty array on error - don't block the page
+        setRecentDocs([])
       } finally {
         setLoading(false)
       }
     }
-    fetchRecentDocs()
+    
+    // Delay fetch slightly to prioritize page render
+    const timer = setTimeout(fetchRecentDocs, 100)
+    return () => clearTimeout(timer)
   }, [])
 
   const getIconColor = (index) => {
@@ -540,7 +562,19 @@ export default function LandingPage() {
           <div className="hero-card">
             <div className="hc-label">Recent uploads</div>
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '20px', color: 'rgba(255,255,255,0.5)' }}>Loading...</div>
+              <>
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="hc-doc" style={{ opacity: 0.5 }}>
+                    <div className="hc-doc-icon g" style={{ animation: 'pulse 1.5s infinite' }}>
+                      <svg width="16" height="20" viewBox="0 0 16 20" fill="none"><rect x="2" y="2" width="12" height="16" rx="2" stroke="rgba(255,255,255,0.3)" strokeWidth="1.3"/></svg>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ height: '12px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', width: '70%', marginBottom: '6px' }} />
+                      <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', width: '40%' }} />
+                    </div>
+                  </div>
+                ))}
+              </>
             ) : recentDocs.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '20px', color: 'rgba(255,255,255,0.5)' }}>No documents yet</div>
             ) : (
