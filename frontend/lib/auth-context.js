@@ -66,6 +66,20 @@ export function AuthProvider({ children }) {
     } catch {}
   }
 
+  // For OAuth callbacks - set tokens and fetch user profile
+  const setTokens = async (accessToken, refreshToken) => {
+    Cookies.set('accessToken', accessToken, { expires: 1/96 }) // 15 min
+    Cookies.set('refreshToken', refreshToken, { expires: 30 }) // 30 days
+    // Fetch user profile
+    try {
+      const { data } = await authApi.profile()
+      Cookies.set('user', JSON.stringify(data), { expires: 30 })
+      setUser(data)
+    } catch (err) {
+      console.error('Failed to fetch profile after OAuth:', err)
+    }
+  }
+
   const isAdmin = user?.role === 'admin'
 
   const hasAccess = () => {
@@ -78,7 +92,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       user, loading, login, register, logout,
-      refreshProfile, isAdmin, hasAccess,
+      refreshProfile, isAdmin, hasAccess, setTokens,
     }}>
       {children}
     </AuthContext.Provider>

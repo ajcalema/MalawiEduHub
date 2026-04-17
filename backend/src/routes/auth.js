@@ -19,4 +19,8 @@ router.get('/profile',   requireAuth, getProfile);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password',  resetPassword);
 
+// Google OAuth routes
+const googleAuthRoutes = require('./auth-google');
+router.use('/google', googleAuthRoutes);
+
 module.exports = router;

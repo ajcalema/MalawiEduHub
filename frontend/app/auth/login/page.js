@@ -8,6 +8,7 @@ import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import toast from 'react-hot-toast'
 import { Mail, Phone, Lock, Eye, EyeOff } from 'lucide-react'
+import { FcGoogle } from 'react-icons/fc'
 
 // ── Left panel branding content ──────────────
 const BrandSide = () => (
@@ -171,6 +172,16 @@ export default function LoginPage() {
           <span className="text-xs text-gray-400">or continue with</span>
           <div className="flex-1 h-px bg-gray-100" />
         </div>
+
+        {/* Social login buttons */}
+        <button
+          type="button"
+          onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`}
+          className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-sm hover:bg-gray-50 hover:border-gray-300 transition-all mb-4"
+        >
+          <FcGoogle size={20} />
+          Continue with Google
+        </button>
 
         {/* Upload pass prompt */}
         <div className="rounded-2xl p-4 flex items-start gap-3"
