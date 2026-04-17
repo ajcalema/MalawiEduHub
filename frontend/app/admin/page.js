@@ -12,13 +12,14 @@ import {
   Loader2, RefreshCw, TrendingUp, AlertTriangle,
   BookOpen, Clock, Ban, Edit2, Save, X, Menu,
   DollarSign, Activity, BookMarked, ClipboardList,
-  GraduationCap, Calendar, Trash2
+  GraduationCap, Calendar, Trash2, CheckCircle
 } from 'lucide-react'
 
 // ── Sidebar nav items ────────────────────────
 const NAV = [
   { key: 'dashboard',  label: 'Dashboard',      icon: LayoutDashboard },
   { key: 'upload',     label: 'Upload document',icon: Upload },
+  { key: 'bulkUpload', label: 'Bulk upload',    icon: Upload },
   { key: 'queue',      label: 'Review queue',   icon: Clock,          badge: true },
   { key: 'documents',  label: 'All documents',  icon: FileText },
   { key: 'duplicates', label: 'Duplicate log',  icon: AlertTriangle },
@@ -1148,6 +1149,318 @@ function TabUpload({ onUploadSuccess }) {
   )
 }
 
+// ── Bulk Upload tab ───────────────────────────
+function TabBulkUpload({ onUploadSuccess }) {
+  const [files, setFiles] = useState([])
+  const [form, setForm] = useState({
+    subject_name: '',
+    level: '',
+    doc_type: '',
+    year: String(new Date().getFullYear()),
+    description: '',
+    price_mwk: '',
+  })
+  const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState({ current: 0, total: 0, errors: [] })
+  const [suggestions, setSuggestions] = useState([])
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  useEffect(() => {
+    const q = form.subject_name.trim()
+    if (q.length < 1) { setSuggestions([]); return }
+    const t = setTimeout(() => {
+      subjectsApi.list({ q })
+        .then((r) => setSuggestions(Array.isArray(r.data) ? r.data : []))
+        .catch(() => setSuggestions([]))
+    }, 280)
+    return () => clearTimeout(t)
+  }, [form.subject_name])
+
+  const handleFilesSelect = (selectedFiles) => {
+    const allowedTypes = ['application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation']
+    
+    const validFiles = Array.from(selectedFiles).filter(file => {
+      if (!allowedTypes.includes(file.type)) {
+        toast.error(`${file.name}: Only PDF, DOCX, and PPTX files are allowed.`)
+        return false
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        toast.error(`${file.name}: File too large. Maximum size is 20MB.`)
+        return false
+      }
+      return true
+    })
+
+    setFiles(prev => [...prev, ...validFiles.map(file => ({
+      file,
+      title: file.name?.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ') || '',
+      status: 'pending'
+    }))])
+  }
+
+  const removeFile = (index) => {
+    setFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const updateFileTitle = (index, title) => {
+    setFiles(prev => prev.map((f, i) => i === index ? { ...f, title } : f))
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (files.length === 0) { toast.error('Please select at least one file.'); return }
+    if (!form.subject_name.trim()) { toast.error('Subject name is required.'); return }
+    if (!form.level) { toast.error('Education level is required.'); return }
+    if (!form.doc_type) { toast.error('Document type is required.'); return }
+
+    setUploading(true)
+    setProgress({ current: 0, total: files.length, errors: [] })
+
+    const errors = []
+    for (let i = 0; i < files.length; i++) {
+      const fileItem = files[i]
+      setProgress(p => ({ ...p, current: i + 1 }))
+      
+      try {
+        const formData = new FormData()
+        formData.append('file', fileItem.file)
+        formData.append('title', fileItem.title.trim())
+        formData.append('subject_name', form.subject_name.trim())
+        formData.append('level', form.level)
+        formData.append('doc_type', form.doc_type)
+        formData.append('year', form.year)
+        if (form.description.trim()) formData.append('description', form.description.trim())
+        if (form.price_mwk && !isNaN(parseFloat(form.price_mwk))) {
+          formData.append('price_mwk', parseFloat(form.price_mwk))
+        }
+
+        await documentsApi.uploadAdmin(formData)
+        setFiles(prev => prev.map((f, idx) => idx === i ? { ...f, status: 'success' } : f))
+      } catch (err) {
+        const msg = err.response?.data?.error || err.response?.data?.message || 'Upload failed'
+        errors.push(`${fileItem.title}: ${msg}`)
+        setFiles(prev => prev.map((f, idx) => idx === i ? { ...f, status: 'error', error: msg } : f))
+      }
+    }
+
+    setProgress(p => ({ ...p, errors }))
+    setUploading(false)
+
+    if (errors.length === 0) {
+      toast.success(`Successfully uploaded ${files.length} documents!`)
+      setFiles([])
+      setForm({
+        subject_name: '',
+        level: '',
+        doc_type: '',
+        year: String(new Date().getFullYear()),
+        description: '',
+        price_mwk: '',
+      })
+      if (onUploadSuccess) onUploadSuccess()
+    } else if (errors.length < files.length) {
+      toast.success(`Uploaded ${files.length - errors.length} of ${files.length} documents. Some failed.`)
+    } else {
+      toast.error('All uploads failed. Please check the errors.')
+    }
+  }
+
+  const fc = (err) => `w-full px-3 py-2 text-sm rounded-xl border ${err ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'} focus:outline-none focus:border-green-400`
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-50">
+          <h2 className="text-sm font-semibold text-gray-900">Bulk Upload Documents</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Upload multiple documents with the same metadata</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-5 space-y-5">
+          {/* Shared Metadata */}
+          <div className="bg-green-50 rounded-xl p-4 space-y-4">
+            <h3 className="text-sm font-semibold text-green-800">Shared Metadata (applied to all files)</h3>
+            
+            {/* Subject */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-green-700 uppercase tracking-wider">
+                Subject <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={form.subject_name}
+                onChange={(e) => set('subject_name', e.target.value)}
+                placeholder="e.g. Mathematics"
+                className={fc()}
+              />
+              {suggestions.length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-lg shadow-sm mt-1">
+                  {suggestions.slice(0, 5).map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => { set('subject_name', s.name); setSuggestions([]) }}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+                    >
+                      {s.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Level and Type */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-green-700 uppercase tracking-wider">
+                  Level <span className="text-red-400">*</span>
+                </label>
+                <select value={form.level} onChange={(e) => set('level', e.target.value)} className={fc()}>
+                  <option value="">Select level</option>
+                  {LEVELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-green-700 uppercase tracking-wider">
+                  Type <span className="text-red-400">*</span>
+                </label>
+                <select value={form.doc_type} onChange={(e) => set('doc_type', e.target.value)} className={fc()}>
+                  <option value="">Select type</option>
+                  {DOC_TYPES.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* Year and Price */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-green-700 uppercase tracking-wider">Year</label>
+                <select value={form.year} onChange={(e) => set('year', e.target.value)} className={fc()}>
+                  {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-green-700 uppercase tracking-wider">Price (MWK)</label>
+                <input type="number" value={form.price_mwk} onChange={(e) => set('price_mwk', e.target.value)}
+                  placeholder="Leave empty for default" className={fc()} />
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-green-700 uppercase tracking-wider">Description</label>
+              <textarea value={form.description} onChange={(e) => set('description', e.target.value)}
+                placeholder="Optional description..." rows={2} className={fc()} />
+            </div>
+          </div>
+
+          {/* File Selection */}
+          <div className="space-y-3">
+            <label className="text-sm font-semibold text-gray-800">Select Files</label>
+            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-green-400 transition-colors">
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.docx,.pptx"
+                onChange={(e) => handleFilesSelect(e.target.files)}
+                className="hidden"
+                id="bulk-files"
+              />
+              <label htmlFor="bulk-files" className="cursor-pointer">
+                <Upload size={32} className="mx-auto text-gray-400 mb-2" />
+                <p className="text-sm text-gray-600">Click to select multiple files</p>
+                <p className="text-xs text-gray-400">PDF, DOCX, PPTX (max 20MB each)</p>
+              </label>
+            </div>
+          </div>
+
+          {/* File List */}
+          {files.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-gray-800">Files ({files.length})</h4>
+                <button
+                  type="button"
+                  onClick={() => setFiles([])}
+                  className="text-xs text-red-500 hover:text-red-600"
+                >
+                  Clear all
+                </button>
+              </div>
+              <div className="max-h-64 overflow-y-auto space-y-2">
+                {files.map((fileItem, index) => (
+                  <div key={index} className={`flex items-center gap-3 p-3 rounded-lg border ${
+                    fileItem.status === 'success' ? 'bg-green-50 border-green-200' :
+                    fileItem.status === 'error' ? 'bg-red-50 border-red-200' :
+                    'bg-gray-50 border-gray-200'
+                  }`}>
+                    <div className="flex-1 min-w-0">
+                      <input
+                        type="text"
+                        value={fileItem.title}
+                        onChange={(e) => updateFileTitle(index, e.target.value)}
+                        disabled={uploading}
+                        className="w-full px-2 py-1 text-sm bg-transparent border-none focus:outline-none"
+                      />
+                      <p className="text-xs text-gray-400 truncate">{fileItem.file.name}</p>
+                      {fileItem.error && <p className="text-xs text-red-500">{fileItem.error}</p>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {fileItem.status === 'success' && <CheckCircle2 size={16} className="text-green-500" />}
+                      {fileItem.status === 'error' && <XCircle size={16} className="text-red-500" />}
+                      {!uploading && (
+                        <button
+                          type="button"
+                          onClick={() => removeFile(index)}
+                          className="p-1 text-gray-400 hover:text-red-500"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Progress */}
+          {uploading && (
+            <div className="bg-blue-50 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-blue-800">
+                  Uploading {progress.current} of {progress.total}
+                </span>
+                <span className="text-xs text-blue-600">
+                  {Math.round((progress.current / progress.total) * 100)}%
+                </span>
+              </div>
+              <div className="w-full bg-blue-200 rounded-full h-2">
+                <div
+                  className="bg-blue-500 h-2 rounded-full transition-all"
+                  style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={uploading || files.length === 0}
+            className="w-full py-3 px-4 bg-green-500 text-white font-semibold rounded-xl hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+            {uploading ? `Uploading ${progress.current}/${progress.total}...` : `Upload ${files.length} Document${files.length !== 1 ? 's' : ''}`}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 // ── Helpers ───────────────────────────────────
 function LoadingSpinner() {
   return (
@@ -1388,6 +1701,7 @@ export default function AdminPage() {
         <main className="flex-1 overflow-y-auto p-5 sm:p-6">
           {tab === 'dashboard'  && <TabDashboard  stats={stats} onTabChange={setTab} />}
           {tab === 'upload'     && <TabUpload      onUploadSuccess={() => loadData({ silent: true })} />}
+          {tab === 'bulkUpload' && <TabBulkUpload  onUploadSuccess={() => loadData({ silent: true })} />}
           {tab === 'queue'      && <TabQueue       queue={queue} onApprove={handleApprove} onReject={handleReject} loading={loading} />}
           {tab === 'documents'  && <TabDocuments   documents={documents} loading={loading} onUpdate={handleUpdate} onDelete={handleDelete} />}
           {tab === 'duplicates' && <TabDuplicates  logs={dupLogs} loading={loading} />}
