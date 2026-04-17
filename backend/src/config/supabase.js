@@ -5,11 +5,22 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
 const bucketName = process.env.SUPABASE_BUCKET || 'documents';
 
+console.log('🔧 Supabase Config:', {
+  url: supabaseUrl ? '✅ Set' : '❌ Missing',
+  key: supabaseKey ? '✅ Set' : '❌ Missing',
+  bucket: bucketName
+});
+
 if (!supabaseUrl || !supabaseKey) {
   console.warn('⚠️  Supabase credentials not configured. File uploads will fail.');
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  }
+});
 
 /**
  * Upload a file to Supabase Storage
@@ -86,6 +97,25 @@ const getPublicUrl = (fileName) => {
 
   return publicUrl;
 };
+
+// Test connection on startup
+const testConnection = async () => {
+  try {
+    const { data, error } = await supabase.storage.listBuckets();
+    if (error) {
+      console.error('❌ Supabase connection failed:', error.message);
+    } else {
+      console.log('✅ Supabase connected. Buckets:', data.map(b => b.name).join(', '));
+    }
+  } catch (err) {
+    console.error('❌ Supabase connection error:', err.message);
+  }
+};
+
+// Run test if credentials are configured
+if (supabaseUrl && supabaseKey) {
+  testConnection();
+}
 
 module.exports = {
   supabase,
