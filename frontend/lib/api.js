@@ -68,6 +68,8 @@ export const authApi = {
   logout:   (data) => api.post('/auth/logout',   data),
   profile:  ()     => api.get('/auth/profile'),
   refresh:  (data) => api.post('/auth/refresh',  data),
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token, new_password) => api.post('/auth/reset-password', { token, new_password }),
 }
 
 // ─── Documents ───────────────────────────────

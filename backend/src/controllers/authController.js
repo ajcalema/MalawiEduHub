@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { query } = require('../config/db');
 const {
   generateAccessToken,
@@ -236,4 +237,116 @@ const getProfile = async (req, res) => {
   }
 };
 
-module.exports = { register, login, refresh, logout, getProfile };
+// ─── FORGOT PASSWORD ──────────────────────────
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required.' });
+    }
+
+    // Find user by email
+    const result = await query(
+      'SELECT id, full_name, email FROM users WHERE email = $1',
+      [email.toLowerCase()]
+    );
+
+    const user = result.rows[0];
+
+    // Don't reveal if user exists (security)
+    if (!user) {
+      return res.json({ message: 'If an account exists with this email, you will receive a password reset link.' });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = hashToken(resetToken);
+
+    // Store token in database (expires in 1 hour)
+    await query(
+      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+       VALUES ($1, $2, NOW() + INTERVAL '1 hour')`,
+      [user.id, tokenHash]
+    );
+
+    // In production, send email here with reset link
+    // For now, return the token in the response (for testing)
+    const resetUrl = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
+
+    console.log('\n🔐 Password Reset Request:');
+    console.log(`   User: ${user.email}`);
+    console.log(`   Reset URL: ${resetUrl}\n`);
+
+    res.json({
+      message: 'If an account exists with this email, you will receive a password reset link.',
+      // Only include these in development/testing
+      ...(process.env.NODE_ENV !== 'production' && {
+        reset_token: resetToken,
+        reset_url: resetUrl,
+      }),
+    });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ error: 'Failed to process request.' });
+  }
+};
+
+// ─── RESET PASSWORD ───────────────────────────
+const resetPassword = async (req, res) => {
+  try {
+    const { token, new_password } = req.body;
+
+    if (!token || !new_password) {
+      return res.status(400).json({ error: 'Token and new password are required.' });
+    }
+
+    if (new_password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+    }
+
+    // Hash the provided token
+    const tokenHash = hashToken(token);
+
+    // Find valid token
+    const tokenResult = await query(
+      `SELECT user_id FROM password_reset_tokens
+       WHERE token_hash = $1 AND used = FALSE AND expires_at > NOW()`,
+      [tokenHash]
+    );
+
+    if (tokenResult.rows.length === 0) {
+      return res.status(400).json({ error: 'Invalid or expired reset token.' });
+    }
+
+    const userId = tokenResult.rows[0].user_id;
+
+    // Hash new password
+    const passwordHash = await bcrypt.hash(new_password, 12);
+
+    // Update user's password
+    await query(
+      'UPDATE users SET password_hash = $1 WHERE id = $2',
+      [passwordHash, userId]
+    );
+
+    // Mark token as used
+    await query(
+      'UPDATE password_reset_tokens SET used = TRUE WHERE token_hash = $1',
+      [tokenHash]
+    );
+
+    // Revoke all existing refresh tokens for security
+    await query(
+      'UPDATE refresh_tokens SET revoked = TRUE WHERE user_id = $1',
+      [userId]
+    );
+
+    res.json({ message: 'Password reset successfully. Please log in with your new password.' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ error: 'Failed to reset password.' });
+  }
+};
+
+module.exports = { register, login, refresh, logout, getProfile, forgotPassword, resetPassword };
