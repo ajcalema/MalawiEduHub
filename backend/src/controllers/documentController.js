@@ -1,9 +1,8 @@
 const { query, getClient } = require('../config/db');
-const { getSignedDownloadUrl } = require('../config/storage');
+const { uploadFile, downloadFile, deleteFile } = require('../config/supabase');
 const { runDuplicateDetection, computeFileHash } = require('../services/duplicateDetection');
 const { resolveOrCreateSubjectId } = require('../services/subjectResolve');
 const { v4: uuidv4 } = require('uuid');
-const fs = require('fs');
 const path = require('path');
 
 const ALLOWED_DOC_STATUS = new Set(['pending', 'approved', 'rejected', 'flagged', 'unpublished']);
@@ -77,19 +76,11 @@ const uploadDocument = async (req, res) => {
       // action === 'flag' — continue upload but mark as flagged
     }
 
-    // Build the S3 file key
+    // Build the file key for Supabase Storage
     const fileKey = `documents/${req.user.id}/${uuidv4()}.${fileType}`;
-    const localFilePath = path.join(__dirname, '..', '..', 'uploads', fileKey);
 
-    // Ensure uploads directory exists
-    fs.mkdirSync(path.dirname(localFilePath), { recursive: true });
-
-    // Save file to local storage
-    fs.writeFileSync(localFilePath, fileBuffer);
-
-    // In production: upload buffer to S3
-    // const uploadParams = { Bucket: BUCKET, Key: fileKey, Body: fileBuffer };
-    // await s3.send(new PutObjectCommand(uploadParams));
+    // Upload to Supabase Storage
+    const publicUrl = await uploadFile(fileBuffer, fileKey, file.mimetype);
 
     const autoApprove = dupResult.passed === true;
     const docStatus = dupResult.action === 'flag' ? 'flagged' : 'pending';
@@ -256,19 +247,11 @@ const uploadDocumentAdmin = async (req, res) => {
     const fileType   = file.originalname.split('.').pop().toLowerCase();
     const fileHash   = computeFileHash(fileBuffer);
 
-    // Build the S3 file key
+    // Build the file key for Supabase Storage
     const fileKey = `documents/${req.user.id}/${uuidv4()}.${fileType}`;
-    const localFilePath = path.join(__dirname, '..', '..', 'uploads', fileKey);
 
-    // Ensure uploads directory exists
-    fs.mkdirSync(path.dirname(localFilePath), { recursive: true });
-
-    // Save file to local storage
-    fs.writeFileSync(localFilePath, fileBuffer);
-
-    // In production: upload buffer to S3
-    // const uploadParams = { Bucket: BUCKET, Key: fileKey, Body: fileBuffer };
-    // await s3.send(new PutObjectCommand(uploadParams));
+    // Upload to Supabase Storage
+    const publicUrl = await uploadFile(fileBuffer, fileKey, file.mimetype);
 
     // Get default price from settings or use provided price
     let finalPrice = parseFloat(price_mwk);
@@ -472,31 +455,6 @@ const downloadDocument = async (req, res) => {
     const doc = docResult.rows[0];
     if (!doc) return res.status(404).json({ error: 'Document not found.' });
 
-    // Check if file exists locally
-    const localFilePath = path.join(__dirname, '..', '..', 'uploads', doc.file_url);
-    if (!fs.existsSync(localFilePath)) {
-      return res.status(404).json({ error: 'File not available for download.' });
-    }
-
-    const directDownload = Boolean(token);
-
-    if (directDownload) {
-      const downloadEntry = await query(
-        `SELECT id, downloaded_at FROM downloads
-         WHERE document_id = $1 AND signed_url_used = $2
-         AND downloaded_at > NOW() - INTERVAL '1 hour'
-         LIMIT 1`,
-        [id, token]
-      );
-
-      if (!downloadEntry.rows[0]) {
-        return res.status(403).json({ error: 'invalid_or_expired_download_link' });
-      }
-
-      const downloadName = path.basename(doc.file_name_original || localFilePath);
-      return res.download(localFilePath, downloadName);
-    }
-
     if (!req.user) {
       return res.status(401).json({ error: 'No token provided.' });
     }
@@ -552,9 +510,18 @@ const downloadDocument = async (req, res) => {
       [req.user.id, id, paymentId, subscriptionId, req.ip]
     );
 
-    // Direct download - serve file immediately
-    const downloadName = path.basename(doc.file_name_original || localFilePath);
-    return res.download(localFilePath, downloadName);
+    // Download from Supabase Storage
+    try {
+      const fileBuffer = await downloadFile(doc.file_url);
+      const downloadName = path.basename(doc.file_name_original || doc.file_url);
+      
+      res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.send(fileBuffer);
+    } catch (downloadErr) {
+      console.error('Supabase download error:', downloadErr);
+      return res.status(404).json({ error: 'File not found in storage.' });
+    }
   } catch (err) {
     console.error('downloadDocument error:', err);
     res.status(500).json({ error: 'Download failed.', details: err.message });
@@ -665,14 +632,11 @@ const deleteDocument = async (req, res) => {
       return res.status(400).json({ error: 'Can only delete unpublished or rejected documents.' });
     }
 
-    // Delete the file from local storage
-    const localFilePath = path.join(__dirname, '..', '..', 'uploads', doc.file_url);
+    // Delete the file from Supabase Storage
     try {
-      if (fs.existsSync(localFilePath)) {
-        fs.unlinkSync(localFilePath);
-      }
+      await deleteFile(doc.file_url);
     } catch (fileErr) {
-      console.error('File deletion failed:', fileErr);
+      console.error('Supabase file deletion failed:', fileErr);
       // Continue with database deletion even if file deletion fails
     }
 
