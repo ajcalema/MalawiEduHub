@@ -1,7 +1,8 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
+import api from '@/lib/api'
 import {
   X, Download, Eye, ExternalLink, FileText, BookOpen, BookMarked,
   ClipboardList, GraduationCap, Calendar, User, Tag, TrendingUp
@@ -16,6 +17,35 @@ const TYPE_ICONS   = { past_paper:FileText, notes:BookOpen, textbook:BookMarked,
 export default function PreviewDrawer({ doc, onClose, onDownload }) {
   const router = useRouter()
   const { user, hasAccess } = useAuth()
+  const [monthlyPrice, setMonthlyPrice] = useState('2500')
+
+  // Fetch monthly price from admin settings
+  useEffect(() => {
+    const fetchPrice = async () => {
+      try {
+        const cached = localStorage.getItem('mh_prices')
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          if (parsed.monthly) {
+            setMonthlyPrice(parsed.monthly)
+            return
+          }
+        }
+        const { data } = await api.get('/admin/settings/public')
+        if (data.price_monthly_mwk) {
+          setMonthlyPrice(data.price_monthly_mwk)
+          localStorage.setItem('mh_prices', JSON.stringify({
+            daily: data.price_daily_mwk,
+            weekly: data.price_weekly_mwk,
+            monthly: data.price_monthly_mwk
+          }))
+        }
+      } catch (err) {
+        // Use default
+      }
+    }
+    fetchPrice()
+  }, [])
 
   // Close on Escape key
   useEffect(() => {
@@ -146,7 +176,7 @@ export default function PreviewDrawer({ doc, onClose, onDownload }) {
                 <div className="flex flex-col gap-1.5 text-xs text-gray-600">
                   <div className="flex justify-between items-center">
                     <span>Monthly subscription</span>
-                    <span className="font-bold text-green-700">MWK 2,500</span>
+                    <span className="font-bold text-green-700">MWK {parseInt(monthlyPrice).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span>Pay per download</span>
