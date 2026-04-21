@@ -124,24 +124,24 @@ export const adminApi = {
   updateSetting: (key, value) => api.patch(`/admin/settings/${key}`, { value }),
 }
 
-// ─── Class Learning ─────────────────────────
-export const classApi = {
-  // Get all classes
-  getClasses: () => api.get('/class/classes'),
-  // Get user's current class
-  getMyClass: () => api.get('/class/my-class'),
-  // Set user's class
-  selectClass: (classId) => api.post('/class/select-class', { class_id: classId }),
-  // Get subjects filtered by class
-  getSubjects: () => api.get('/class/subjects'),
-  // Get topics filtered by class + subject
-  getTopics: (subjectId) => api.get('/class/topics', { params: { subject_id: subjectId } }),
-  // Mark topic as completed
-  completeTopic: (topicId) => api.post('/class/complete-topic', { topic_id: topicId }),
-  // Get learning room data
-  getLearningRoom: (topicId) => api.get(`/class/learning-room/${topicId}`),
-  // Get next topic
-  getNextTopic: (currentTopicId) => api.get(`/class/next-topic/${currentTopicId}`),
+// ─── Learning Room API ─────────────────────────
+export const learnApi = {
+  getClasses: () => api.get('/learn/classes'),
+  getSubjects: (classId) => api.get(`/learn/classes/${classId}/subjects`),
+  getTopics: (classId, subjectId) => api.get(`/learn/classes/${classId}/subjects/${subjectId}/topics`),
+  getResources: (topicId) => api.get(`/learn/topics/${topicId}/resources`),
+  markProgress: (topicId, completed) => api.post(`/learn/topics/${topicId}/progress`, { completed }),
+  getProgress: () => api.get('/learn/progress'),
+  // Admin
+  adminClasses: () => api.get('/learn/admin/classes'),
+  adminTopics: (params) => api.get('/learn/admin/topics', { params }),
+  adminCreateTopic: (data) => api.post('/learn/admin/topics', data),
+  adminUpdateTopic: (id, data) => api.put(`/learn/admin/topics/${id}`, data),
+  adminDeleteTopic: (id) => api.delete(`/learn/admin/topics/${id}`),
+  adminAddResource: (topicId, documentId) => api.post(`/learn/admin/topics/${topicId}/resources`, { document_id: documentId }),
+  adminRemoveResource: (topicId, documentId) => api.delete(`/learn/admin/topics/${topicId}/resources/${documentId}`),
+  adminAddSubject: (classId, subjectId) => api.post(`/learn/admin/classes/${classId}/subjects`, { subject_id: subjectId }),
+  adminRemoveSubject: (classId, subjectId) => api.delete(`/learn/admin/classes/${classId}/subjects/${subjectId}`),
 }
 
 export default api

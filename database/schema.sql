@@ -622,55 +622,128 @@ CREATE VIEW v_duplicate_log_full AS
   LEFT JOIN documents md ON dl.matched_document_id = md.id
   ORDER BY dl.blocked_at DESC;
 
+-- Learning views
+CREATE OR REPLACE VIEW v_topics_full AS
+  SELECT t.*,
+    c.name AS class_name, c.slug AS class_slug,
+    s.name AS subject_name, s.slug AS subject_slug, s.icon_emoji AS subject_icon,
+    u.full_name AS created_by_name,
+    (SELECT COUNT(*) FROM topic_resources tr WHERE tr.topic_id = t.id) AS resource_count
+  FROM topics t
+  JOIN classes c ON t.class_id = c.id
+  JOIN subjects s ON t.subject_id = s.id
+  LEFT JOIN users u ON t.created_by = u.id;
+
+CREATE OR REPLACE VIEW v_class_subjects AS
+  SELECT cs.class_id, cs.subject_id, cs.sort_order, cs.is_active,
+    c.name AS class_name, c.slug AS class_slug,
+    s.name AS subject_name, s.slug AS subject_slug, s.icon_emoji,
+    (SELECT COUNT(*) FROM topics t
+     WHERE t.class_id = cs.class_id AND t.subject_id = cs.subject_id
+       AND t.is_active = TRUE) AS topic_count
+  FROM class_subjects cs
+  JOIN classes c ON cs.class_id = c.id
+  JOIN subjects s ON cs.subject_id = s.id;
+
 -- =============================================================
--- CLASSES (learning levels/forms)
+-- CLASSES (learning levels/forms) with slug
 -- =============================================================
 
 CREATE TABLE classes (
   id              SERIAL PRIMARY KEY,
-  name            VARCHAR(50) NOT NULL UNIQUE,   -- "Form 1", "Form 2", "Form 3", "Form 4"
-  display_name    VARCHAR(100) NOT NULL,    -- "Form 1 (JCE)", "Form 2 (JCE)", etc.
-  level_type      VARCHAR(20) NOT NULL,       -- "jce", "msce", "tvet", "university"
-  sort_order      INTEGER NOT NULL DEFAULT 0,
-  is_active       BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-INSERT INTO classes (name, display_name, level_type, sort_order) VALUES
-  ('Form 1', 'Form 1 (JCE)', 'jce', 1),
-  ('Form 2', 'Form 2 (JCE)', 'jce', 2),
-  ('Form 3', 'Form 3 (MSCE)', 'msce', 3),
-  ('Form 4', 'Form 4 (MSCE)', 'msce', 4);
-
--- =============================================================
--- TOPICS (linked to subjects + classes)
--- =============================================================
-
-CREATE TABLE topics (
-  id              SERIAL PRIMARY KEY,
-  name            VARCHAR(200) NOT NULL,    -- "Cell Structure", "Photosynthesis"
-  subject_id      INTEGER NOT NULL REFERENCES subjects(id),
-  class_id        INTEGER NOT NULL REFERENCES classes(id),
+  name            VARCHAR(50) NOT NULL UNIQUE,   -- "Form 1", "Form 2"
+  slug            VARCHAR(50) NOT NULL UNIQUE,   -- "form-1", "form-2"
   description     TEXT,
   sort_order      INTEGER NOT NULL DEFAULT 0,
   is_active       BOOLEAN NOT NULL DEFAULT TRUE,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_topics_subject_class ON topics (subject_id, class_id);
+INSERT INTO classes (name, slug, sort_order) VALUES
+  ('Form 1', 'form-1', 1),
+  ('Form 2', 'form-2', 2),
+  ('Form 3', 'form-3', 3),
+  ('Form 4', 'form-4', 4)
+ON CONFLICT (slug) DO NOTHING;
 
--- Seed some sample topics for Form 1 Biology
-INSERT INTO topics (name, subject_id, class_id, description, sort_order) VALUES
-  ('Introduction to Biology', 2, 1, 'Basic concepts of biology and living things', 1),
-  ('Cell Structure', 2, 1, 'Understanding the cell as the basic unit of life', 2),
-  ('Cell Organization', 2, 1, 'Tissues, organs and organ systems', 3),
-  ('Nutrition in Plants', 2, 1, 'How plants prepare their own food', 4),
-  ('Nutrition in Animals', 2, 1, 'Different feeding habits in animals', 5),
-  ('Transport in Plants', 2, 1, 'Movement of water and minerals', 6),
-  ('Transport in Animals', 2, 1, 'Circulatory system in humans', 7),
-  ('Respiration', 2, 1, 'Gas exchange and energy release', 8),
-  ('Excretion', 2, 1, 'Removal of waste products', 9),
-  ('Growth and Development', 2, 1, 'How organisms grow and change', 10);
+-- =============================================================
+-- CLASS SUBJECTS (which subjects are available for each class)
+-- =============================================================
+
+CREATE TABLE class_subjects (
+  id              SERIAL PRIMARY KEY,
+  class_id        INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  subject_id      INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+  sort_order      INTEGER NOT NULL DEFAULT 0,
+  is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+  UNIQUE (class_id, subject_id)
+);
+
+-- Seed class_subjects (admin can add/remove)
+DO $$
+DECLARE v_cid INTEGER; v_sid INTEGER;
+BEGIN
+  FOR v_cid IN SELECT id FROM classes LOOP
+    FOR v_sid IN SELECT id FROM subjects WHERE is_active = TRUE LOOP
+      INSERT INTO class_subjects (class_id, subject_id, sort_order)
+      VALUES (v_cid, v_sid, v_sid)
+      ON CONFLICT DO NOTHING;
+    END LOOP;
+  END LOOP;
+END $$;
+
+-- =============================================================
+-- TOPICS (linked to class + subject)
+-- =============================================================
+
+CREATE TABLE topics (
+  id              SERIAL PRIMARY KEY,
+  class_id        INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  subject_id      INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+  title           VARCHAR(200) NOT NULL,
+  description     TEXT,
+  sort_order      INTEGER NOT NULL DEFAULT 0,
+  is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+  created_by      UUID REFERENCES users(id),
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_topics_class_subject ON topics (class_id, subject_id);
+
+-- =============================================================
+-- TOPIC RESOURCES (documents attached to topics)
+-- =============================================================
+
+CREATE TABLE topic_resources (
+  id              SERIAL PRIMARY KEY,
+  topic_id        INTEGER NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+  document_id     UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  sort_order      INTEGER NOT NULL DEFAULT 0,
+  added_by        UUID REFERENCES users(id),
+  added_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (topic_id, document_id)
+);
+
+CREATE INDEX idx_topic_resources_topic ON topic_resources (topic_id);
+CREATE INDEX idx_topic_resources_doc ON topic_resources (document_id);
+
+-- =============================================================
+-- STUDENT PROGRESS
+-- =============================================================
+
+CREATE TABLE student_progress (
+  id              SERIAL PRIMARY KEY,
+  user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  topic_id        INTEGER NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+  completed       BOOLEAN NOT NULL DEFAULT FALSE,
+  completed_at    TIMESTAMPTZ,
+  last_visited    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, topic_id)
+);
+
+CREATE INDEX idx_progress_user ON student_progress (user_id);
+CREATE INDEX idx_progress_topic ON student_progress (topic_id);
 
 -- Seed topics for Form 1 Mathematics
 INSERT INTO topics (name, subject_id, class_id, description, sort_order) VALUES
@@ -751,40 +824,10 @@ INSERT INTO topics (name, subject_id, class_id, description, sort_order) VALUES
   ('Natural Selection', 2, 3, 'Survival of fittest', 10);
 
 -- Seed topics for Form 4 Biology
-INSERT INTO topics (name, subject_id, class_id, description, sort_order) VALUES
-  ('Revision', 2, 4, 'Comprehensive revision', 1),
-  ('Past Papers Practice', 2, 4, 'Exam preparation', 2),
-  ('Mock Exams', 2, 4, 'Trial examinations', 3);
-
--- =============================================================
--- USER TOPIC PROGRESS (track completed topics)
--- =============================================================
-
-CREATE TABLE user_topic_progress (
-  id              SERIAL PRIMARY KEY,
-  user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  topic_id        INTEGER NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
-  is_completed    BOOLEAN NOT NULL DEFAULT FALSE,
-  completed_at    TIMESTAMPTZ,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_progress_user ON user_topic_progress (user_id);
-CREATE UNIQUE INDEX idx_progress_user_topic ON user_topic_progress (user_id, topic_id);
-
--- =============================================================
--- USER SELECTED CLASS (store user's current class selection)
--- =============================================================
-
-CREATE TABLE user_class_selection (
-  id              SERIAL PRIMARY KEY,
-  user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  class_id        INTEGER NOT NULL REFERENCES classes(id),
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE UNIQUE INDEX idx_user_class ON user_class_selection (user_id);
+INSERT INTO topics (name, class_id, subject_id, title, description, sort_order) VALUES
+  ('Revision', 4, 2, 'Comprehensive revision', 'All topics review', 1),
+  ('Past Papers Practice', 4, 2, 'Exam preparation', 'Past paper questions', 2),
+  ('Mock Exams', 4, 2, 'Trial examination', 'Trial exam', 3);
 
 -- =============================================================
 -- SEED: default admin user (CHANGE PASSWORD ON FIRST LOGIN)
