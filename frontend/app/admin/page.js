@@ -499,7 +499,17 @@ function TabRequests({ requests, loading, onFulfill }) {
                 </td>
                 <td className="px-4 py-3">
                   {req.status === 'pending' && (
-                    <button onClick={() => setShowFulfill(req.id)}
+                    <button onClick={async () => {
+                      if (confirm('Mark this request as fulfilled?')) {
+                        try {
+                          await documentsApi.fulfillRequest(req.id, { status: 'fulfilled' })
+                          toast.success('Request fulfilled.')
+                          onFulfill(req.id)
+                        } catch (e) {
+                          toast.error(e?.response?.data?.error || 'Failed to fulfill.')
+                        }
+                      }
+                    }}
                       className="text-xs font-semibold text-green-600 hover:underline">
                       Fulfill
                     </button>
