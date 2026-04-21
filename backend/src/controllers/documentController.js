@@ -793,25 +793,7 @@ const getDuplicateLog = async (req, res) => {
   }
 };
 
-module.exports = {
-  uploadDocument,
-  uploadDocumentAdmin,
-  browseDocuments,
-  getDocument,
-  downloadDocument,
-  getUserDownloads,
-  getAdminQueue,
-  approveDocument,
-  rejectDocument,
-  updateDocument,
-  getDuplicateLog,
-  deleteDocument,
-  createRequest,
-  getMyRequests,
-  getAllRequests,
-  fulfillRequest,
-};
-
+// Export functions at the end
 const createRequest = async (req, res) => {
   try {
     const { subject_id, subject_name, title, description, level, year } = req.body;
@@ -906,4 +888,23 @@ const fulfillRequest = async (req, res) => {
     console.error('fulfillRequest error:', err);
     res.status(500).json({ error: 'Failed to fulfill request.' });
   }
+};
+
+module.exports = {
+  uploadDocument,
+  uploadDocumentAdmin,
+  browseDocuments,
+  getDocument,
+  downloadDocument,
+  getUserDownloads,
+  getAdminQueue,
+  approveDocument,
+  rejectDocument,
+  updateDocument,
+  getDuplicateLog,
+  deleteDocument,
+  createRequest,
+  getMyRequests,
+  getAllRequests,
+  fulfillRequest,
 };
