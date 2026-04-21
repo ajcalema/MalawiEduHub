@@ -5,7 +5,7 @@ const multer  = require('multer');
 const {
   uploadDocument, uploadDocumentAdmin, browseDocuments, getDocument, downloadDocument,
   getAdminQueue, approveDocument, rejectDocument, updateDocument, getDuplicateLog,
-  getUserDownloads, deleteDocument,
+  getUserDownloads, deleteDocument, createRequest, getMyRequests, getAllRequests, fulfillRequest,
 } = require('../controllers/documentController');
 const { requireAuth, requireAdmin, optionalAuth } = require('../middleware/auth');
 
@@ -37,7 +37,15 @@ router.patch('/admin/:id',         requireAuth, requireAdmin, updateDocument);
 router.delete('/admin/:id',        requireAuth, requireAdmin, deleteDocument);
 router.get('/:id',      optionalAuth, getDocument);
 router.post('/upload',      uploadLimiter, requireAuth, upload.single('file'), uploadDocument);
-router.get('/:id/download', optionalAuth, downloadDocument);
+const downloadLimiter = rateLimit({ windowMs: 60*60*1000, max: 50,
+  message: { error: 'Download limit reached. Try again in 1 hour.' } });
+
+router.get('/:id/download', downloadLimiter, optionalAuth, downloadDocument);
 router.get('/downloads/user', requireAuth, getUserDownloads);
+
+router.post('/requests', requireAuth, createRequest);
+router.get('/requests/mine', requireAuth, getMyRequests);
+router.get('/admin/requests', requireAuth, requireAdmin, getAllRequests);
+router.patch('/admin/requests/:id', requireAuth, requireAdmin, fulfillRequest);
 
 module.exports = router;

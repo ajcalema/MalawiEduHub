@@ -806,4 +806,104 @@ module.exports = {
   updateDocument,
   getDuplicateLog,
   deleteDocument,
+  createRequest,
+  getMyRequests,
+  getAllRequests,
+  fulfillRequest,
+};
+
+const createRequest = async (req, res) => {
+  try {
+    const { subject_id, subject_name, title, description, level, year } = req.body;
+
+    if (!title || title.trim().length < 3) {
+      return res.status(400).json({ error: 'Title must be at least 3 characters.' });
+    }
+
+    let resolvedSubjectId = subject_id;
+    if (subject_name) {
+      const subjectResult = await query(
+        'SELECT id FROM subjects WHERE LOWER(name) = LOWER($1)',
+        [subject_name.trim()]
+      );
+      if (subjectResult.rows[0]) {
+        resolvedSubjectId = subjectResult.rows[0].id;
+      }
+    }
+
+    const result = await query(
+      `INSERT INTO document_requests (user_id, subject_id, title, description, level, year)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, title, status, created_at`,
+      [req.user.id, resolvedSubjectId, title.trim(), description || null, level || null, year ? parseInt(year) : null]
+    );
+
+    res.status(201).json({
+      message: 'Document request submitted. We will notify you when it becomes available.',
+      request: result.rows[0]
+    });
+  } catch (err) {
+    console.error('createRequest error:', err);
+    res.status(500).json({ error: 'Failed to create request.' });
+  }
+};
+
+const getMyRequests = async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT dr.*, s.name AS subject_name
+       FROM document_requests dr
+       LEFT JOIN subjects s ON dr.subject_id = s.id
+       WHERE dr.user_id = $1
+       ORDER BY dr.created_at DESC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch requests.' });
+  }
+};
+
+const getAllRequests = async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT dr.*, s.name AS subject_name, u.email AS user_email
+       FROM document_requests dr
+       LEFT JOIN subjects s ON dr.subject_id = s.id
+       JOIN users u ON dr.user_id = u.id
+       ORDER BY dr.created_at DESC
+       LIMIT 100`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch requests.' });
+  }
+};
+
+const fulfillRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { document_id, status } = req.body;
+
+    if (status === 'cancelled') {
+      await query(
+        `UPDATE document_requests SET status = 'cancelled', updated_at = NOW() WHERE id = $1`,
+        [id]
+      );
+      return res.json({ message: 'Request cancelled.' });
+    }
+
+    if (!document_id) {
+      return res.status(400).json({ error: 'document_id required to fulfill.' });
+    }
+
+    await query(
+      `UPDATE document_requests SET status = 'fulfilled', fulfilled_doc_id = $1, updated_at = NOW() WHERE id = $2`,
+      [document_id, id]
+    );
+    res.json({ message: 'Request fulfilled.' });
+  } catch (err) {
+    console.error('fulfillRequest error:', err);
+    res.status(500).json({ error: 'Failed to fulfill request.' });
+  }
 };

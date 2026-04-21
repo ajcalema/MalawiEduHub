@@ -11,7 +11,7 @@ import {
   Upload, Download, BookOpen, Star, Clock, CheckCircle2,
   AlertCircle, FileText, Loader2, ChevronRight, Calendar,
   Smartphone, CreditCard, RefreshCw, ExternalLink, User,
-  TrendingUp, Award, Zap
+  TrendingUp, Award, Zap, Monitor, LogOut, Plus, Search
 } from 'lucide-react'
 
 // ── Stat card ────────────────────────────────
@@ -254,7 +254,9 @@ function Tabs({ active, onChange }) {
     { key: 'overview',  label: 'Overview',  icon: TrendingUp },
     { key: 'downloads', label: 'Downloads', icon: Download },
     { key: 'uploads',   label: 'My uploads',icon: Upload },
+    { key: 'requests', label: 'Requests', icon: Search },
     { key: 'payments',  label: 'Payments',  icon: CreditCard },
+    { key: 'security',  label: 'Security',  icon: Monitor },
   ]
   return (
     <div className="flex gap-1 bg-gray-100 p-1 rounded-2xl mb-6">
@@ -662,20 +664,233 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* ── REQUESTS TAB ── */}
+        {tab === 'requests' && (
+          <RequestsTab />
+        )}
+
+        {/* ── SECURITY TAB ── */}
+        {tab === 'security' && (
+          <SecurityTab />
+        )}
+
+      </div>
+    </div>
+  )
+}
+
+// ── Requests tab ───────────────────────────────
+function RequestsTab() {
+  const [requests, setRequests] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState({ title: '', subject_name: '', description: '', level: '', year: '' })
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => { loadRequests() }, [])
+
+  const loadRequests = async () => {
+    try {
+      const { data } = await documentsApi.myRequests()
+      setRequests(data || [])
+    } catch {}
+    finally { setLoading(false) }
+  }
+
+  const onSubmit = async (e) => {
+    e.preventDefault()
+    if (!form.title.trim()) return
+    setSubmitting(true)
+    try {
+      await documentsApi.createRequest(form)
+      toast.success('Request submitted! We will notify you when available.')
+      setShowForm(false)
+      setForm({ title: '', subject_name: '', description: '', level: '', year: '' })
+      loadRequests()
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'Failed to submit request.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-sm font-semibold text-gray-900">Document requests</h2>
+        <button onClick={() => setShowForm(!showForm)}
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-green-500 rounded-xl hover:bg-green-400">
+          <Plus size={13} /> Request
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={onSubmit} className="p-4 bg-gray-50 rounded-xl mb-4">
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              type="text" name="title" placeholder="What document do you need?" value={form.title}
+              onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+              className="col-span-2 px-3 py-2 rounded-lg border border-gray-200 text-sm"
+            />
+            <input
+              type="text" name="subject_name" placeholder="Subject (e.g. Biology)" value={form.subject_name}
+              onChange={e => setForm(f => ({ ...f, subject_name: e.target.value }))}
+              className="px-3 py-2 rounded-lg border border-gray-200 text-sm"
+            />
+            <select
+              name="level" value={form.level} onChange={e => setForm(f => ({ ...f, level: e.target.value }))}
+              className="px-3 py-2 rounded-lg border border-gray-200 text-sm">
+              <option value="">Select level</option>
+              <option value="primary">Primary</option>
+              <option value="jce">JCE</option>
+              <option value="msce">MSCE</option>
+              <option value="tvet">TVET</option>
+              <option value="university">University</option>
+            </select>
+            <input
+              type="number" name="year" placeholder="Year (optional)" value={form.year}
+              onChange={e => setForm(f => ({ ...f, year: e.target.value }))}
+              className="px-3 py-2 rounded-lg border border-gray-200 text-sm"
+            />
+            <textarea
+              name="description" placeholder="Additional details (optional)" value={form.description}
+              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              className="col-span-2 px-3 py-2 rounded-lg border border-gray-200 text-sm" rows={2}
+            />
+          </div>
+          <div className="flex gap-2 mt-3">
+            <button type="button" onClick={() => setShowForm(false)}
+              className="px-4 py-2 text-sm text-gray-600">Cancel</button>
+            <button type="submit" disabled={submitting}
+              className="px-4 py-2 text-sm bg-green-500 text-white rounded-lg disabled:opacity-50">
+              {submitting ? 'Submitting...' : 'Submit request'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {loading ? (
+        <Loader2 size={20} className="mx-auto text-gray-300 animate-spin" />
+      ) : requests.length === 0 ? (
+        <EmptyState icon={Search} message="No requests yet" action="Request a document you need" onClick={() => setShowForm(true)} />
+      ) : (
+        requests.map(req => (
+          <div key={req.id} className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0">
+            <div className="w-9 h-9 bg-amber-50 rounded-lg border border-amber-100 flex items-center justify-center">
+              <Search size={15} className="text-amber-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-800">{req.title}</p>
+              <p className="text-xs text-gray-400">
+                {req.subject_name} {req.level && `· ${req.level}`} {req.year && `· ${req.year}`}
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <span className={`text-[11px] font-semibold px-2 py-1 rounded-lg border
+                ${req.status === 'fulfilled' ? 'bg-green-50 text-green-700 border-green-100' :
+                  req.status === 'cancelled' ? 'bg-red-50 text-red-600 border-red-100' :
+                  'bg-amber-50 text-amber-700 border-amber-100'}`}>
+                {req.status}
+              </span>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  )
+}
+
+// ── Security tab ───────────────────────────────
+function SecurityTab() {
+  const [sessions, setSessions] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  useEffect(() => { loadSessions() }, [])
+
+  const loadSessions = async () => {
+    try {
+      const { data } = await authApi.sessions()
+      setSessions(data || [])
+    } catch {}
+    finally { setLoading(false) }
+  }
+
+  const logoutAll = async () => {
+    if (!confirm('Log out of all devices? You will need to log in again everywhere.')) return
+    setLoggingOut(true)
+    try {
+      await authApi.logoutAll({})
+      toast.success('Logged out of all devices.')
+      setSessions([])
+      // Redirect to login
+      window.location.href = '/auth/login'
+    } catch (err) {
+      toast.error('Failed to logout.')
+    } finally {
+      setLoggingOut(false)
+    }
+  }
+
+  const formatDate = (d) => new Date(d).toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+  })
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-sm font-semibold text-gray-900">Active sessions</h2>
+        <button onClick={logoutAll} disabled={loggingOut}
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-xl disabled:opacity-50">
+          <LogOut size={13} /> Logout all
+        </button>
+      </div>
+
+      {loading ? (
+        <Loader2 size={20} className="mx-auto text-gray-300 animate-spin" />
+      ) : sessions.length === 0 ? (
+        <p className="text-sm text-gray-400 text-center py-4">No active sessions</p>
+      ) : (
+        sessions.map(session => (
+          <div key={session.id} className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0">
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0
+              ${session.device_name === 'Mobile' ? 'bg-blue-50' : 'bg-gray-100'}`}>
+              {session.device_name === 'Mobile' ? (
+                <Smartphone size={15} className="text-blue-500" />
+              ) : (
+                <Monitor size={15} className="text-gray-500" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-800">{session.device_name || 'Unknown'}</p>
+              <p className="text-xs text-gray-400">{session.ip_address || 'Unknown IP'} · {formatDate(session.created_at)}</p>
+            </div>
+          </div>
+        ))
+      )}
+
+      <div className="mt-6 pt-4 border-t border-gray-100">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase mb-3">Security tips</h3>
+        <ul className="text-xs text-gray-400 space-y-2">
+          <li>• Use a strong, unique password</li>
+          <li>• Enable email verification (coming soon)</li>
+          <li>• Logout from shared devices</li>
+        </ul>
       </div>
     </div>
   )
 }
 
 // ── Empty state helper ───────────────────────
-function EmptyState({ icon: Icon, message, action, href, large }) {
+function EmptyState({ icon: Icon, message, action, href, large, onClick }) {
   return (
     <div className={`flex flex-col items-center justify-center text-center ${large ? 'py-12' : 'py-6'}`}>
       <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">
         <Icon size={22} className="text-gray-300" />
       </div>
       <p className="text-sm font-medium text-gray-500 mb-1">{message}</p>
-      <Link href={href} className="text-xs text-green-600 hover:underline no-underline">{action} →</Link>
+      {href && <Link href={href} className="text-xs text-green-600 hover:underline no-underline">{action} →</Link>}
+      {onClick && <button onClick={onClick} className="text-xs text-green-600 hover:underline">{action}</button>}
     </div>
   )
 }

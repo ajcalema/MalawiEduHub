@@ -1,4 +1,6 @@
 .env
+.env.local
+.env.local.backup
 node_modules/
 .next/
 dist/

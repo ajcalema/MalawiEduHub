@@ -49,7 +49,17 @@ api.interceptors.response.use(
         Cookies.set('refreshToken', data.refreshToken, { expires: 30 })
         original.headers.Authorization = `Bearer ${data.accessToken}`
         return api(original)
-      } catch {
+      } catch (refreshErr) {
+        // If locked, show message and don't redirect
+        if (error.response?.data?.code === 'ACCOUNT_LOCKED') {
+          return Promise.reject(error)
+        }
+        // Clear session for other errors
+        Cookies.remove('accessToken')
+        Cookies.remove('refreshToken')
+        Cookies.remove('user')
+        window.location.href = '/auth/login'
+      }
         // Refresh failed — clear session
         Cookies.remove('accessToken')
         Cookies.remove('refreshToken')
@@ -70,6 +80,8 @@ export const authApi = {
   refresh:  (data) => api.post('/auth/refresh',  data),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   resetPassword: (token, new_password) => api.post('/auth/reset-password', { token, new_password }),
+  sessions: () => api.get('/auth/sessions'),
+  logoutAll: () => api.post('/auth/logout-all'),
 }
 
 // ─── Documents ───────────────────────────────
@@ -79,6 +91,9 @@ export const documentsApi = {
   download: (id)     => api.get(`/documents/${id}/download`),
   upload:   (formData) => api.post('/documents/upload', formData),
   downloads: ()      => api.get('/documents/downloads/user'),
+  // Requests
+  createRequest: (data) => api.post('/documents/requests', data),
+  myRequests: () => api.get('/documents/requests/mine'),
   // Admin
   queue:        ()   => api.get('/documents/admin/queue'),
   duplicateLog: ()   => api.get('/documents/admin/duplicate-log'),
@@ -87,6 +102,8 @@ export const documentsApi = {
   reject:  (id, reason) => api.patch(`/documents/admin/${id}/reject`, { reason }),
   update:  (id, data)   => api.patch(`/documents/admin/${id}`, data),
   delete:  (id)        => api.delete(`/documents/admin/${id}`),
+  allRequests: () => api.get('/documents/admin/requests'),
+  fulfillRequest: (id, data) => api.patch(`/documents/admin/requests/${id}`, data),
 }
 
 // ─── Subjects ────────────────────────────────

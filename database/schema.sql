@@ -83,6 +83,10 @@ CREATE TABLE users (
   password_reset_token      TEXT,
   password_reset_expires_at TIMESTAMPTZ,
 
+  -- brute force protection
+  failed_login_attempts INTEGER NOT NULL DEFAULT 0,
+  locked_until         TIMESTAMPTZ,
+
   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -318,6 +322,28 @@ CREATE INDEX idx_views_doc  ON document_views (document_id);
 CREATE INDEX idx_views_date ON document_views (viewed_at);
 
 -- =============================================================
+-- DOCUMENT REQUESTS (wishlist)
+-- Users can request documents they can't find
+-- =============================================================
+
+CREATE TABLE document_requests (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id       UUID NOT NULL REFERENCES users(id),
+  subject_id    INTEGER REFERENCES subjects(id),
+  title         VARCHAR(300) NOT NULL,
+  description   TEXT,
+  level         doc_level,
+  year          SMALLINT,
+  status        VARCHAR(20) NOT NULL DEFAULT 'pending',  -- pending, fulfilled, cancelled
+  fulfilled_doc_id UUID REFERENCES documents(id),
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_requests_user   ON document_requests (user_id);
+CREATE INDEX idx_requests_status ON document_requests (status);
+
+-- =============================================================
 -- ADMIN ACTIVITY LOG
 -- Every admin action is logged for accountability
 -- =============================================================
@@ -373,7 +399,12 @@ CREATE TABLE refresh_tokens (
   token_hash  TEXT NOT NULL UNIQUE,    -- SHA-256 of actual token
   expires_at  TIMESTAMPTZ NOT NULL,
   revoked     BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+
+  -- session tracking
+  device_name    VARCHAR(100),
+  ip_address    INET,
+  user_agent    TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_tokens_user    ON refresh_tokens (user_id);
@@ -592,9 +623,9 @@ CREATE VIEW v_duplicate_log_full AS
   ORDER BY dl.blocked_at DESC;
 
 -- =============================================================
--- SEED: default admin user
+-- SEED: default admin user (CHANGE PASSWORD ON FIRST LOGIN)
 -- Login: admin@malawieduhub.mw  OR  +265999000001
--- Password: Admin@1234  (bcrypt via bcryptjs, cost 12 — CHANGE IN PRODUCTION)
+-- Default password hash is for dev only - reset in production
 -- =============================================================
 
 INSERT INTO users (

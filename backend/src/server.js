@@ -7,6 +7,11 @@ require('dotenv').config();
 
 const app = express();
 
+if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
+  console.error('❌ JWT_SECRET and JWT_REFRESH_SECRET must be set');
+  process.exit(1);
+}
+
 app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : ['http://localhost:3000'],

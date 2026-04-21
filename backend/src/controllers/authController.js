@@ -12,12 +12,43 @@ const { Resend } = require('resend');
 // Initialize Resend if API key is available
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
+const isValidEmail = (email) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
+const isValidPhone = (phone) => {
+  const cleaned = phone.replace(/\D/g, '');
+  return cleaned.length >= 9 && cleaned.length <= 15;
+};
+
+const isStrongPassword = (pwd) => {
+  return pwd.length >= 8;
+};
+
 // ─── REGISTER ───────────────────────────────
 const register = async (req, res) => {
   try {
     const { full_name, email, phone, password, role, school } = req.body;
 
-    // Check duplicates
+    if (!full_name || full_name.trim().length < 2) {
+      return res.status(400).json({ error: 'Full name must be at least 2 characters.' });
+    }
+    if (full_name.trim().length > 120) {
+      return res.status(400).json({ error: 'Full name too long.' });
+    }
+
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({ error: 'Valid email required.' });
+    }
+
+    if (!password || !isStrongPassword(password)) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+    }
+
+    if (phone && !isValidPhone(phone)) {
+      return res.status(400).json({ error: 'Invalid phone number.' });
+    }
+
     const exists = await query(
       'SELECT id FROM users WHERE email = $1 OR phone = $2',
       [email, phone]
@@ -108,19 +139,64 @@ const login = async (req, res) => {
     if (!user) return res.status(401).json({ error: 'Invalid credentials.' });
     if (user.status === 'suspended') return res.status(403).json({ error: 'Account suspended.' });
 
-    const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(401).json({ error: 'Invalid credentials.' });
+    if (user.locked_until && new Date(user.locked_until) > new Date()) {
+      const remain = Math.ceil((new Date(user.locked_until) - new Date()) / 1000 / 60);
+      return res.status(403).json({
+        error: `Account locked. Try again in ${remain} minutes.`,
+        code: 'ACCOUNT_LOCKED',
+        locked_until: user.locked_until
+      });
+    }
 
-    // Update last login
-    await query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]);
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) {
+      const attempts = (user.failed_login_attempts || 0) + 1;
+      if (attempts >= 5) {
+        await query(
+          `UPDATE users SET failed_login_attempts = 0, locked_until = NOW() + INTERVAL '15 minutes' WHERE id = $1`,
+          [user.id]
+        );
+        return res.status(403).json({
+          error: 'Too many failed attempts. Account locked for 15 minutes.',
+          code: 'ACCOUNT_LOCKED'
+        });
+      }
+      await query(
+        `UPDATE users SET failed_login_attempts = $1 WHERE id = $2`,
+        [attempts, user.id]
+      );
+      return res.status(401).json({
+        error: 'Invalid credentials.',
+        attempts_remaining: 5 - attempts
+      });
+    }
+
+    // Reset failed attempts on successful login
+    await query(
+      `UPDATE users SET last_login_at = NOW(), failed_login_attempts = 0, locked_until = NULL WHERE id = $1`,
+      [user.id]
+    );
 
     const accessToken  = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
+    const userAgent = req.headers['user-agent'] || '';
+    const ip = req.ip || req.connection?.remoteAddress || null;
+
+    const getDeviceName = (ua) => {
+      if (!ua) return 'Unknown';
+      if (ua.includes('Mobile')) return 'Mobile';
+      if (ua.includes('Tablet')) return 'Tablet';
+      if (ua.includes('Windows')) return 'Windows';
+      if (ua.includes('Mac')) return 'Mac';
+      if (ua.includes('Linux')) return 'Linux';
+      return 'Desktop';
+    };
+
     await query(
-      `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
-       VALUES ($1, $2, NOW() + INTERVAL '30 days')`,
-      [user.id, hashToken(refreshToken)]
+      `INSERT INTO refresh_tokens (user_id, token_hash, expires_at, device_name, ip_address, user_agent)
+       VALUES ($1, $2, NOW() + INTERVAL '30 days', $3, $4, $5)`,
+      [user.id, hashToken(refreshToken), getDeviceName(userAgent), ip, userAgent]
     );
 
     // Fetch active subscription
@@ -196,6 +272,35 @@ const logout = async (req, res) => {
       );
     }
     res.json({ message: 'Logged out successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Logout failed.' });
+  }
+};
+
+// ─── LIST SESSIONS ───────────────────────────
+const listSessions = async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT id, device_name, ip_address, user_agent, created_at, expires_at
+       FROM refresh_tokens
+       WHERE user_id = $1 AND revoked = FALSE AND expires_at > NOW()
+       ORDER BY created_at DESC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch sessions.' });
+  }
+};
+
+// ─── LOGOUT EVERYWHERE ──────────────────
+const logoutEverywhere = async (req, res) => {
+  try {
+    await query(
+      `UPDATE refresh_tokens SET revoked = TRUE WHERE user_id = $1`,
+      [req.user.id]
+    );
+    res.json({ message: 'Logged out of all devices.' });
   } catch (err) {
     res.status(500).json({ error: 'Logout failed.' });
   }
@@ -391,4 +496,4 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { register, login, refresh, logout, getProfile, forgotPassword, resetPassword };
+module.exports = { register, login, refresh, logout, getProfile, forgotPassword, resetPassword, listSessions, logoutEverywhere };

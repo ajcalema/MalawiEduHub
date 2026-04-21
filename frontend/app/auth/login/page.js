@@ -71,11 +71,20 @@ export default function LoginPage() {
       toast.success(`Welcome back, ${user.full_name.split(' ')[0]}!`)
       router.push(user.role === 'admin' ? '/admin' : '/browse')
     } catch (err) {
-      const msg = err?.response?.data?.error || 'Login failed. Please try again.'
+      const data = err?.response?.data
+      const msg = data?.error || 'Login failed. Please try again.'
       if (msg.includes('credentials')) {
-        setErrors({ password: 'Incorrect email/phone or password.' })
+        const remaining = data?.attempts_remaining
+        if (remaining !== undefined && remaining < 5) {
+          setErrors({ password: `Incorrect. ${remaining} attempts remaining.` })
+        } else {
+          setErrors({ password: 'Incorrect email/phone or password.' })
+        }
       } else if (msg.includes('suspended')) {
         toast.error('Your account has been suspended. Contact support.')
+      } else if (msg.includes('locked')) {
+        setErrors({ password: '' })
+        toast.error(msg)
       } else {
         toast.error(msg)
       }
