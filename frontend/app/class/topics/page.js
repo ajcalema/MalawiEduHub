@@ -1,7 +1,7 @@
 'use client'
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { classApi, documentsApi } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
@@ -10,7 +10,7 @@ import {
   GraduationCap, ArrowLeft, ArrowRight, BookOpen, Loader2, RefreshCw, CheckCircle, Circle, Download
 } from 'lucide-react'
 
-export default function TopicsPage() {
+function TopicsContent() {
   const { user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -30,7 +30,6 @@ export default function TopicsPage() {
   const loadData = async () => {
     setLoading(true)
     try {
-      // Check if user has a class selected
       const myClassRes = await classApi.getMyClass()
       if (!myClassRes.data?.selected) {
         router.push('/class')
@@ -39,21 +38,11 @@ export default function TopicsPage() {
       
       setClassInfo(myClassRes.data)
 
-      // Get topics for this subject + class
       const { data } = await classApi.getTopics(subjectId)
       setTopics(data || [])
 
-      // Get subject info (from subjects table)
-      const subjectRes = await documentsApi.browse({ 
-        limit: 1, 
-        scope: 'all',
-        subject: subjectId
-      })
-      // We need subject name from a different approach
-      // For now, just use 'Subject' as placeholder - will be enhanced
       setSubjectInfo({ id: subjectId, name: 'Subject' })
     } catch (err) {
-      console.error('Failed to load topics:', err)
       const msg = err?.response?.data?.error || 'Failed to load topics'
       if (msg.includes('class')) {
         router.push('/class')
@@ -73,19 +62,10 @@ export default function TopicsPage() {
     router.push('/class/subjects')
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 size={32} className="text-green-500 animate-spin" />
-      </div>
-    )
-  }
-
   const completedCount = topics.filter(t => t.is_completed).length
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
       <header className="bg-white border-b border-gray-100 px-5 py-4">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center justify-between">
@@ -111,7 +91,6 @@ export default function TopicsPage() {
         </div>
       </header>
 
-      {/* Progress bar */}
       <div className="bg-white border-b border-gray-50 px-5 py-3">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center justify-between text-xs mb-2">
@@ -129,7 +108,6 @@ export default function TopicsPage() {
         </div>
       </div>
 
-      {/* Progress steps */}
       <div className="bg-white border-b border-gray-50 px-5 py-3">
         <div className="max-w-2xl mx-auto flex items-center gap-2 text-xs">
           <span className="font-semibold text-green-600">1. Class</span>
@@ -142,7 +120,6 @@ export default function TopicsPage() {
         </div>
       </div>
 
-      {/* Main content */}
       <main className="flex-1 p-5">
         <div className="max-w-2xl mx-auto space-y-3">
           {topics.length === 0 ? (
@@ -150,8 +127,6 @@ export default function TopicsPage() {
               <BookOpen size={40} className="text-gray-300 mx-auto mb-3" />
               <p className="text-sm text-gray-500">
                 No topics available for this subject yet.
-                <br />
-                Check back soon as we add more content!
               </p>
             </div>
           ) : (
@@ -191,5 +166,21 @@ export default function TopicsPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+function Loading() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <Loader2 size={32} className="text-green-500 animate-spin" />
+    </div>
+  )
+}
+
+export default function TopicsPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <TopicsContent />
+    </Suspense>
   )
 }
