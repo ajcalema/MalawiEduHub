@@ -144,15 +144,23 @@ const initTables = async () => {
 
     // Always ensure classes have data
     try {
-      await query(`
+      const result = await query(`
         INSERT INTO classes (name, slug, sort_order) VALUES
         ('Form 1', 'form-1', 1),
         ('Form 2', 'form-2', 2),
         ('Form 3', 'form-3', 3),
         ('Form 4', 'form-4', 4)
         ON CONFLICT (slug) DO NOTHING
+        RETURNING id
       `);
-    } catch {}
+      if (result.rows.length > 0) {
+        console.log('✅ Added Form 1-4 classes to database');
+      } else {
+        console.log('✅ Classes already exist in database');
+      }
+    } catch (e) {
+      console.log('⚠️ Classes check:', e.message);
+    }
 
     // Class subjects table
     const classSubjectsCheck = await query(`
@@ -192,15 +200,24 @@ const initTables = async () => {
 
     // Ensure class_subjects has data
     try {
-      await query(`
-        INSERT INTO class_subjects (class_id, subject_id, sort_order)
-        SELECT c.id, s.id, COALESCE(cs.sort_order, s.sort_order)
-        FROM classes c
-        CROSS JOIN subjects s
-        LEFT JOIN class_subjects cs ON cs.class_id = c.id AND cs.subject_id = s.id
-        WHERE s.is_active = TRUE AND cs.id IS NULL
-      `);
-    } catch (e) { /* ignore */ }
+      // Check if subjects exist
+      const subjCheck = await query(`SELECT COUNT(*) as cnt FROM subjects WHERE is_active = TRUE`);
+      console.log(`📚 Found ${subjCheck.rows[0].cnt} active subjects`);
+      
+      if (parseInt(subjCheck.rows[0].cnt) > 0) {
+        const result = await query(`
+          INSERT INTO class_subjects (class_id, subject_id, sort_order)
+          SELECT c.id, s.id, COALESCE(cs.sort_order, s.sort_order)
+          FROM classes c
+          CROSS JOIN subjects s
+          LEFT JOIN class_subjects cs ON cs.class_id = c.id AND cs.subject_id = s.id
+          WHERE s.is_active = TRUE AND cs.id IS NULL
+        `);
+        console.log('✅ Linked classes to subjects');
+      }
+    } catch (e) { 
+      console.log('⚠️ Class subjects setup:', e.message);
+    }
 
     // Topics table
     const topicsTableCheck = await query(`
