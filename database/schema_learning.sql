@@ -1,18 +1,26 @@
 -- =============================================================
 -- MalawiEduHub — Learning Room Schema ADDITIONS
--- Safe to run multiple times (uses IF NOT EXISTS / ON CONFLICT)
+-- Safe to run multiple times
 -- =============================================================
 
-CREATE TABLE IF NOT EXISTS classes (
-  id          SERIAL PRIMARY KEY,
-  name        VARCHAR(50)  NOT NULL UNIQUE,
-  slug        VARCHAR(50)  NOT NULL UNIQUE,
-  description TEXT,
-  sort_order  INTEGER NOT NULL DEFAULT 0,
-  is_active   BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+-- Fix existing classes table if missing columns
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS slug VARCHAR(50);
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
+-- Add unique constraint on slug if not exists
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'classes_slug_key') THEN
+    ALTER TABLE classes ADD CONSTRAINT classes_slug_key UNIQUE (slug);
+  END IF;
+EXCEPTION WHEN duplicate_table THEN
+  -- ignore
+END $$;
+
+-- Insert classes (works even if table already exists)
 INSERT INTO classes (name, slug, sort_order) VALUES
   ('Form 1', 'form-1', 1),
   ('Form 2', 'form-2', 2),
@@ -20,6 +28,7 @@ INSERT INTO classes (name, slug, sort_order) VALUES
   ('Form 4', 'form-4', 4)
 ON CONFLICT (slug) DO NOTHING;
 
+-- Create class_subjects if not exists
 CREATE TABLE IF NOT EXISTS class_subjects (
   id         SERIAL PRIMARY KEY,
   class_id   INTEGER NOT NULL REFERENCES classes(id)  ON DELETE CASCADE,
@@ -29,6 +38,7 @@ CREATE TABLE IF NOT EXISTS class_subjects (
   UNIQUE (class_id, subject_id)
 );
 
+-- Create topics if not exists
 CREATE TABLE IF NOT EXISTS topics (
   id          SERIAL PRIMARY KEY,
   class_id    INTEGER NOT NULL REFERENCES classes(id)  ON DELETE CASCADE,
@@ -44,6 +54,7 @@ CREATE TABLE IF NOT EXISTS topics (
 
 CREATE INDEX IF NOT EXISTS idx_topics_class_subject ON topics (class_id, subject_id);
 
+-- Create topic_resources if not exists
 CREATE TABLE IF NOT EXISTS topic_resources (
   id          SERIAL PRIMARY KEY,
   topic_id    INTEGER NOT NULL REFERENCES topics(id)    ON DELETE CASCADE,
@@ -57,6 +68,7 @@ CREATE TABLE IF NOT EXISTS topic_resources (
 CREATE INDEX IF NOT EXISTS idx_topic_resources_topic    ON topic_resources (topic_id);
 CREATE INDEX IF NOT EXISTS idx_topic_resources_document ON topic_resources (document_id);
 
+-- Create student_progress if not exists
 CREATE TABLE IF NOT EXISTS student_progress (
   id           SERIAL PRIMARY KEY,
   user_id      UUID    NOT NULL REFERENCES users(id)   ON DELETE CASCADE,
@@ -94,22 +106,19 @@ FROM class_subjects cs
 JOIN classes  c ON cs.class_id   = c.id
 JOIN subjects s ON cs.subject_id = s.id;
 
--- Seed example Biology topics for Form 2
-DO $$
-DECLARE v_cid INTEGER; v_sid INTEGER;
-BEGIN
-  SELECT id INTO v_cid FROM classes  WHERE slug = 'form-2';
-  SELECT id INTO v_sid FROM subjects WHERE slug = 'biology';
-  IF v_cid IS NOT NULL AND v_sid IS NOT NULL THEN
-    INSERT INTO class_subjects (class_id, subject_id, sort_order)
-    VALUES (v_cid, v_sid, 1) ON CONFLICT DO NOTHING;
-    INSERT INTO topics (class_id, subject_id, title, sort_order) VALUES
-      (v_cid, v_sid, 'Cell Structure and Function', 1),
-      (v_cid, v_sid, 'Nutrition in Plants',         2),
-      (v_cid, v_sid, 'Nutrition in Animals',        3),
-      (v_cid, v_sid, 'Transport in Plants',         4),
-      (v_cid, v_sid, 'Transport in Animals',        5),
-      (v_cid, v_sid, 'Respiration',                 6)
-    ON CONFLICT DO NOTHING;
-  END IF;
-END $$;
+-- Link subjects to classes
+INSERT INTO class_subjects (class_id, subject_id, sort_order)
+SELECT c.id, s.id, s.sort_order
+FROM classes c, subjects s
+WHERE s.is_active = TRUE
+ON CONFLICT DO NOTHING;
+
+-- Seed example Biology topics for Form 2 (using id directly since slug might not exist yet)
+INSERT INTO topics (class_id, subject_id, title, sort_order) VALUES
+  (2, 2, 'Cell Structure and Function', 1),
+  (2, 2, 'Nutrition in Plants', 2),
+  (2, 2, 'Nutrition in Animals', 3),
+  (2, 2, 'Transport in Plants', 4),
+  (2, 2, 'Transport in Animals', 5),
+  (2, 2, 'Respiration', 6)
+ON CONFLICT DO NOTHING;

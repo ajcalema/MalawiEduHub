@@ -31,7 +31,7 @@ const { requireAuth, requireAdmin, optionalAuth } = require('../middleware/auth'
 router.get('/classes', async (req, res) => {
   try {
     const result = await query(
-      `SELECT id, name, slug, description, sort_order
+      `SELECT id, name, slug, sort_order
        FROM classes WHERE is_active = TRUE ORDER BY sort_order`
     )
     res.json(result.rows)
