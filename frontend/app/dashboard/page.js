@@ -152,22 +152,20 @@ function DownloadRow({ download }) {
   const date = new Date(download.downloaded_at)
   const LEVEL = { primary:'Primary', jce:'JCE', msce:'MSCE', university:'Uni' }
   return (
-    <div className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0 group">
-      <div className="w-9 h-10 bg-gray-50 rounded-lg border border-gray-100 flex items-center justify-center flex-shrink-0 group-hover:bg-green-50 group-hover:border-green-100 transition-colors">
-        <FileText size={15} className="text-gray-400 group-hover:text-green-500 transition-colors" />
+    <div className="flex items-center gap-2 py-2 border-b border-gray-50 last:border-0 group">
+      <div className="w-8 h-8 bg-gray-50 rounded-lg border border-gray-100 flex items-center justify-center flex-shrink-0 group-hover:bg-green-50 group-hover:border-green-100 transition-colors">
+        <FileText size={12} className="text-gray-400 group-hover:text-green-500 transition-colors" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-800 truncate group-hover:text-green-700 transition-colors">
-          {download.document_title || 'Untitled document'}
+        <p className="text-xs font-medium text-gray-800 truncate group-hover:text-green-700 transition-colors">
+          {download.document_title || 'Untitled'}
         </p>
-        <p className="text-xs text-gray-400 mt-0.5">
+        <p className="text-[10px] text-gray-400">
           {download.subject_name} · {LEVEL[download.level] || download.level}
-          {download.year ? ` · ${download.year}` : ''}
         </p>
       </div>
       <div className="text-right flex-shrink-0">
-        <p className="text-xs text-gray-400">{date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>
-        <p className="text-[11px] text-gray-300 mt-0.5">{date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</p>
+        <p className="text-[10px] text-gray-400">{date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>
       </div>
     </div>
   )
@@ -186,26 +184,20 @@ function UploadRow({ doc }) {
   const date = new Date(doc.created_at)
 
   return (
-    <div className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0 group">
-      <div className="w-9 h-10 bg-gray-50 rounded-lg border border-gray-100 flex items-center justify-center flex-shrink-0">
-        <Upload size={15} className="text-gray-400" />
+    <div className="flex items-center gap-2 py-2 border-b border-gray-50 last:border-0 group">
+      <div className="w-8 h-8 bg-gray-50 rounded-lg border border-gray-100 flex items-center justify-center flex-shrink-0">
+        <Upload size={12} className="text-gray-400" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-800 truncate">{doc.title}</p>
-        <p className="text-xs text-gray-400 mt-0.5">
+        <p className="text-xs font-medium text-gray-800 truncate">{doc.title}</p>
+        <p className="text-[10px] text-gray-400">
           {doc.subject_name} · {doc.year || '—'}
-          {doc.download_count > 0 && <span className="ml-1">· {doc.download_count} downloads</span>}
         </p>
       </div>
-      <div className="flex-shrink-0 flex items-center gap-2">
-        <span className={`text-[11px] font-semibold px-2 py-1 rounded-lg border ${s.color}`}>
+      <div className="flex-shrink-0">
+        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border ${s.color}`}>
           {s.label}
         </span>
-        {doc.status === 'rejected' && doc.rejection_reason && (
-          <span title={doc.rejection_reason}>
-            <AlertCircle size={13} className="text-red-400" />
-          </span>
-        )}
       </div>
     </div>
   )
@@ -259,15 +251,17 @@ function Tabs({ active, onChange }) {
     { key: 'security',  label: 'Security',  icon: Monitor },
   ]
   return (
-    <div className="flex gap-1 bg-gray-100 p-1 rounded-2xl mb-6">
-      {tabs.map(({ key, label, icon: Icon }) => (
-        <button key={key} onClick={() => onChange(key)}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all
-            ${active === key ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-          <Icon size={14} className="hidden sm:block" />
-          {label}
-        </button>
-      ))}
+    <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-2xl mb-6 min-w-max">
+        {tabs.map(({ key, label, icon: Icon }) => (
+          <button key={key} onClick={() => onChange(key)}
+            className={`flex items-center justify-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all whitespace-nowrap
+              ${active === key ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+            <Icon size={14} />
+            <span className="hidden xs:inline">{label}</span>
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
@@ -404,17 +398,17 @@ export default function DashboardPage() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-24 pb-12">
 
         {/* Profile header */}
-        <div className="bg-white rounded-3xl border border-gray-100 p-6 mb-6
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4
           shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
-          <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-green-500 flex items-center justify-center
-              text-white text-xl font-bold flex-shrink-0">
+          <div className="flex items-start gap-3">
+            <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center
+              text-white text-lg font-bold flex-shrink-0">
               {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start justify-between gap-2">
                 <div>
-                  <h1 className="font-serif text-2xl text-gray-900">{user.full_name}</h1>
+                  <h1 className="font-serif text-lg text-gray-900">{user.full_name}</h1>
                   <p className="text-sm text-gray-400 mt-0.5 flex items-center gap-2">
                     <span className="capitalize">{user.role}</span>
                     {profile?.school && <><span>·</span><span>{profile.school}</span></>}
@@ -461,14 +455,14 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-5">
 
             {/* Stats grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <StatCard icon={Upload}   label="Documents uploaded"  value={profile?.approved_upload_count || 0} sub="approved by admin" accent="green" />
               <StatCard icon={Download} label="Total downloads"     value={downloads.length || 0}              sub="all time"          accent="blue" />
               <StatCard icon={Award}    label="Upload pass progress" value={`${uploadProgress?.pct || 0}%`}    sub={`${uploadProgress?.approved_count || 0} of ${uploadProgress?.threshold || 5}`} accent="amber" />
               <StatCard icon={Star}     label="Subscription"        value={hasAccess ? 'Active' : 'None'}      sub={hasAccess ? sub?.plan : 'Subscribe to download'} accent="purple" />
             </div>
 
-            <div className="grid lg:grid-cols-2 gap-5">
+            <div className="grid md:grid-cols-2 gap-4">
               {/* Subscription card */}
               <SubscriptionCard
                 subscription={sub}
@@ -513,35 +507,39 @@ export default function DashboardPage() {
             </div>
 
             {/* Recent activity */}
-            <div className="grid lg:grid-cols-2 gap-5">
+            <div className="grid md:grid-cols-2 gap-4">
 
               {/* Recent uploads */}
-              <div className="bg-white rounded-2xl border border-gray-100 p-5">
-                <div className="flex items-center justify-between mb-4">
+              <div className="bg-white rounded-2xl border border-gray-100 p-4">
+                <div className="flex items-center justify-between mb-3">
                   <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                    <Upload size={16} className="text-green-500" /> Recent uploads
+                    <Upload size={16} className="text-green-500" /> Uploads
                   </h2>
                   <button onClick={() => setTab('uploads')} className="text-xs text-green-600 hover:underline">View all</button>
                 </div>
                 {uploads.length === 0 ? (
-                  <EmptyState icon={Upload} message="No uploads yet" action="Upload your first document" href="/upload" />
+                  <EmptyState icon={Upload} message="No uploads yet" action="Upload document" href="/upload" />
                 ) : (
-                  uploads.slice(0, 4).map(doc => <UploadRow key={doc.id} doc={doc} />)
+                  <div className="space-y-0">
+                    {uploads.slice(0, 3).map(doc => <UploadRow key={doc.id} doc={doc} />)}
+                  </div>
                 )}
               </div>
 
               {/* Recent downloads */}
-              <div className="bg-white rounded-2xl border border-gray-100 p-5">
-                <div className="flex items-center justify-between mb-4">
+              <div className="bg-white rounded-2xl border border-gray-100 p-4">
+                <div className="flex items-center justify-between mb-3">
                   <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                    <Download size={16} className="text-blue-500" /> Recent downloads
+                    <Download size={16} className="text-blue-500" /> Downloads
                   </h2>
                   <button onClick={() => setTab('downloads')} className="text-xs text-green-600 hover:underline">View all</button>
                 </div>
                 {downloads.length === 0 ? (
-                  <EmptyState icon={Download} message="No downloads yet" action="Browse the library" href="/browse" />
+                  <EmptyState icon={Download} message="No downloads yet" action="Browse library" href="/browse" />
                 ) : (
-                  downloads.slice(0, 4).map(d => <DownloadRow key={d.id} download={d} />)
+                  <div className="space-y-0">
+                    {downloads.slice(0, 3).map(d => <DownloadRow key={d.id} download={d} />)}
+                  </div>
                 )}
               </div>
             </div>
