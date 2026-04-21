@@ -452,7 +452,7 @@ function TabDocuments({ documents, loading, onUpdate, onDelete }) {
 
 // ── Duplicate log tab ─────────────────────────
 // ── Requests tab ─────────────────────────────────
-function TabRequests({ requests, loading, onFulfill }) {
+function TabRequests({ requests, loading, documents, onFulfill }) {
   const [search, setSearch] = useState('')
   const [showFulfill, setShowFulfill] = useState(null)
   const filtered = requests.filter(r =>
@@ -1804,7 +1804,7 @@ export default function AdminPage() {
           {tab === 'queue'      && <TabQueue       queue={queue} onApprove={handleApprove} onReject={handleReject} loading={loading} />}
           {tab === 'documents'  && <TabDocuments   documents={documents} loading={loading} onUpdate={handleUpdate} onDelete={handleDelete} />}
           {tab === 'duplicates' && <TabDuplicates  logs={dupLogs} loading={loading} />}
-          {tab === 'requests'  && <TabRequests   requests={requests} loading={loading} onFulfill={handleFulfillRequest} />}
+          {tab === 'requests'  && <TabRequests   requests={requests} loading={loading} documents={documents} onFulfill={handleFulfillRequest} />}
           {tab === 'users'      && <TabUsers       users={users} loading={loading} onSuspend={handleSuspend} />}
           {tab === 'revenue'    && <TabRevenue     revenue={revenue} loading={loading} />}
           {tab === 'settings'   && <TabSettings    settings={settings} loading={loading} onSave={handleSaveSetting} />}
