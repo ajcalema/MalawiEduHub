@@ -60,12 +60,6 @@ api.interceptors.response.use(
         Cookies.remove('user')
         window.location.href = '/auth/login'
       }
-        // Refresh failed — clear session
-        Cookies.remove('accessToken')
-        Cookies.remove('refreshToken')
-        Cookies.remove('user')
-        window.location.href = '/auth/login'
-      }
     }
     return Promise.reject(error)
   }
