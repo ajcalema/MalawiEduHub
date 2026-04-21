@@ -876,23 +876,15 @@ const fulfillRequest = async (req, res) => {
     const { id } = req.params;
     const { document_id, status } = req.body;
 
-    if (status === 'cancelled') {
+    if (status === 'cancelled' || status === 'fulfilled') {
       await query(
-        `UPDATE document_requests SET status = 'cancelled', updated_at = NOW() WHERE id = $1`,
-        [id]
+        `UPDATE document_requests SET status = $1, fulfilled_doc_id = $2, updated_at = NOW() WHERE id = $3`,
+        [status, document_id || null, id]
       );
-      return res.json({ message: 'Request cancelled.' });
+      return res.json({ message: `Request ${status}.` });
     }
 
-    if (status === 'fulfilled' || document_id) {
-      await query(
-        `UPDATE document_requests SET status = 'fulfilled', fulfilled_doc_id = $1, updated_at = NOW() WHERE id = $2`,
-        [document_id || null, id]
-      );
-      return res.json({ message: 'Request fulfilled.' });
-    }
-
-    return res.status(400).json({ error: 'status or document_id required.' });
+    return res.status(400).json({ error: 'status is required (fulfilled or cancelled).' });
   } catch (err) {
     console.error('fulfillRequest error:', err);
     res.status(500).json({ error: 'Failed to fulfill request.' });
