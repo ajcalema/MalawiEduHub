@@ -142,6 +142,18 @@ const initTables = async () => {
       try { await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS slug VARCHAR(50)`); } catch {}
     }
 
+    // Always ensure classes have data
+    try {
+      await query(`
+        INSERT INTO classes (name, slug, sort_order) VALUES
+        ('Form 1', 'form-1', 1),
+        ('Form 2', 'form-2', 2),
+        ('Form 3', 'form-3', 3),
+        ('Form 4', 'form-4', 4)
+        ON CONFLICT (slug) DO NOTHING
+      `);
+    } catch {}
+
     // Class subjects table
     const classSubjectsCheck = await query(`
       SELECT EXISTS (
@@ -177,6 +189,18 @@ const initTables = async () => {
     } else {
       console.log('✅ class_subjects table already exists');
     }
+
+    // Ensure class_subjects has data
+    try {
+      await query(`
+        INSERT INTO class_subjects (class_id, subject_id, sort_order)
+        SELECT c.id, s.id, COALESCE(cs.sort_order, s.sort_order)
+        FROM classes c
+        CROSS JOIN subjects s
+        LEFT JOIN class_subjects cs ON cs.class_id = c.id AND cs.subject_id = s.id
+        WHERE s.is_active = TRUE AND cs.id IS NULL
+      `);
+    } catch (e) { /* ignore */ }
 
     // Topics table
     const topicsTableCheck = await query(`
