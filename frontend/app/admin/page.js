@@ -15,6 +15,8 @@ import {
   GraduationCap, Calendar, Trash2, CheckCircle
 } from 'lucide-react'
 
+import AdminLearningRoom from '@/components/learn/AdminLearningRoom'
+
 // ── Sidebar nav items ────────────────────────
 const NAV = [
   { key: 'dashboard',  label: 'Dashboard',      icon: LayoutDashboard },
@@ -28,6 +30,7 @@ const NAV = [
   { key: 'users',      label: 'Users',          icon: Users },
   { key: 'revenue',    label: 'Revenue',        icon: BarChart2 },
   { key: 'settings',   label: 'Settings',       icon: Settings },
+  { key: 'learning',   label: 'Learning Room',  icon: GraduationCap },
 ]
 
 // ── Constants ────────────────────────────────
@@ -2041,6 +2044,7 @@ export default function AdminPage() {
           {tab === 'users'      && <TabUsers       users={users} loading={loading} onSuspend={handleSuspend} />}
           {tab === 'revenue'    && <TabRevenue     revenue={revenue} loading={loading} />}
           {tab === 'settings'   && <TabSettings    settings={settings} loading={loading} onSave={handleSaveSetting} />}
+          {tab === 'learning'   && <AdminLearningRoom />}
         </main>
       </div>
     </div>
