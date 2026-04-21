@@ -499,20 +499,20 @@ function TabRequests({ requests, loading, onFulfill }) {
                 </td>
                 <td className="px-4 py-3">
                   {req.status === 'pending' && (
-                    <button onClick={async () => {
-                      if (confirm('Mark this request as fulfilled?')) {
-                        try {
-                          await documentsApi.fulfillRequest(req.id, { status: 'fulfilled' })
-                          toast.success('Request fulfilled.')
-                          onFulfill(req.id)
-                        } catch (e) {
-                          toast.error(e?.response?.data?.error || 'Failed to fulfill.')
-                        }
+                    <select onChange={(e) => {
+                      if (e.target.value) {
+                        documentsApi.fulfillRequest(req.id, { document_id: e.target.value, status: 'fulfilled' })
+                          .then(() => { toast.success('Request fulfilled.'); onFulfill(req.id); })
+                          .catch(err => toast.error(err?.response?.data?.error || 'Failed to fulfill.'))
                       }
                     }}
-                      className="text-xs font-semibold text-green-600 hover:underline">
-                      Fulfill
-                    </button>
+                      className="text-xs border rounded px-2 py-1"
+                      defaultValue="">
+                      <option value="">Fulfill with doc...</option>
+                      {documents.filter(d => d.status === 'approved').map(d => (
+                        <option key={d.id} value={d.id}>{d.title?.slice(0, 30)}</option>
+                      ))}
+                    </select>
                   )}
                 </td>
               </tr>
