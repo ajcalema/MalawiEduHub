@@ -50,6 +50,22 @@ router.patch('/users/:id/suspend', requireAuth, requireAdmin, async (req, res) =
   }
 });
 
+router.patch('/users/:id/unlock', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    await query(
+      `UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = $1`,
+      [req.params.id]
+    );
+    await query(
+      `INSERT INTO admin_log (admin_id, action, target_type, target_id) VALUES ($1,'unlock_user','user',$2)`,
+      [req.user.id, req.params.id]
+    );
+    res.json({ message: 'User unlocked.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to unlock user.' });
+  }
+});
+
 router.get('/settings', requireAuth, requireAdmin, async (req, res) => {
   const result = await query('SELECT * FROM system_settings ORDER BY key');
   res.json(result.rows);
