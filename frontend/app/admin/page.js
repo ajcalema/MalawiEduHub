@@ -452,95 +452,27 @@ function TabDocuments({ documents, loading, onUpdate, onDelete }) {
 
 // ── Duplicate log tab ─────────────────────────
 // ── Requests tab ─────────────────────────────────
-function TabRequests({ requests, loading, documents, onFulfill }) {
+function TabRequests({ requests, loading, onFulfill }) {
   const [search, setSearch] = useState('')
-  const [activeRequest, setActiveRequest] = useState(null)
-  const [form, setForm] = useState({
-    title: '',
-    subject_name: '',
-    level: '',
-    doc_type: '',
-    year: String(new Date().getFullYear()),
-    description: '',
-    price_mwk: '',
-  })
-  const [errors, setErrors] = useState({})
-  const [uploading, setUploading] = useState(false)
-  const [file, setFile] = useState(null)
-  const [suggestions, setSuggestions] = useState([])
-
   const filtered = requests.filter(r =>
     !search || r.title?.toLowerCase().includes(search.toLowerCase()) ||
     r.subject_name?.toLowerCase().includes(search.toLowerCase())
   )
   if (loading) return <LoadingSpinner />
 
-  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: '' })) }
-
-  // Load request data into form when modal opens
-  const openFulfill = (req) => {
-    setActiveRequest(req)
-    setForm({
+  const handleFulfillClick = (req) => {
+    // Store request info in localStorage for the upload page
+    const requestInfo = {
+      id: req.id,
       title: req.title || '',
       subject_name: req.subject_name || '',
       level: req.level || '',
-      doc_type: '',
-      year: req.year ? String(req.year) : String(new Date().getFullYear()),
+      year: req.year || new Date().getFullYear(),
       description: req.description || '',
-      price_mwk: '',
-    })
-    setFile(null)
-    setErrors({})
-  }
-
-  // Subject autocomplete
-  useEffect(() => {
-    const q = form.subject_name.trim()
-    if (q.length < 1) { setSuggestions([]); return }
-    const t = setTimeout(() => {
-      subjectsApi.list({ q })
-        .then(r => setSuggestions(Array.isArray(r.data) ? r.data : []))
-        .catch(() => setSuggestions([]))
-    }, 280)
-    return () => clearTimeout(t)
-  }, [form.subject_name])
-
-  const validate = () => {
-    const e = {}
-    if (!file) e.file = 'Select a file'
-    if (!form.title.trim()) e.title = 'Title required'
-    if (!form.subject_name.trim()) e.subject_name = 'Subject required'
-    if (!form.level) e.level = 'Level required'
-    if (!form.doc_type) e.doc_type = 'Doc type required'
-    setErrors(e)
-    return Object.keys(e).length === 0
-  }
-
-  const handleFulfillUpload = async () => {
-    if (!validate()) return
-    setUploading(true)
-    const fd = new FormData()
-    fd.append('file', file)
-    fd.append('title', form.title.trim())
-    fd.append('subject_name', form.subject_name.trim())
-    fd.append('level', form.level)
-    fd.append('doc_type', form.doc_type)
-    fd.append('year', form.year)
-    if (form.description.trim()) fd.append('description', form.description.trim())
-    if (form.price_mwk && !isNaN(parseFloat(form.price_mwk))) fd.append('price_mwk', parseFloat(form.price_mwk))
-    try {
-      const uploadRes = await documentsApi.uploadAdmin(fd)
-      const newDocId = uploadRes.data?.document?.id
-      await documentsApi.fulfillRequest(activeRequest.id, { document_id: newDocId, status: 'fulfilled' })
-      toast.success('Document uploaded and request fulfilled!')
-      setActiveRequest(null)
-      setFile(null)
-      onFulfill(activeRequest.id)
-    } catch (e) {
-      toast.error(e?.response?.data?.error || 'Upload failed.')
-    } finally {
-      setUploading(false)
     }
+    localStorage.setItem('fulfillRequest', JSON.stringify(requestInfo))
+    // Redirect to upload page
+    window.location.href = '/admin?view=upload'
   }
 
   return (
@@ -582,7 +514,7 @@ function TabRequests({ requests, loading, documents, onFulfill }) {
                 </td>
                 <td className="px-4 py-3">
                   {req.status === 'pending' && (
-                    <button onClick={() => openFulfill(req)}
+                    <button onClick={() => handleFulfillClick(req)}
                       className="text-xs font-semibold text-green-600 hover:underline">
                       Upload & Fulfill
                     </button>
@@ -593,109 +525,6 @@ function TabRequests({ requests, loading, documents, onFulfill }) {
           </tbody>
         </table>
       </div>
-
-      {/* Upload modal with full form */}
-      {activeRequest && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg my-8">
-            <h3 className="text-lg font-semibold mb-1">Upload for Request</h3>
-            <p className="text-sm text-gray-500 mb-4">"{activeRequest.title}"</p>
-            
-            <div className="space-y-3">
-              {/* File */}
-              <div>
-                <label className="text-xs font-semibold text-gray-500">File *</label>
-                <input type="file" accept=".pdf,.docx,.pptx"
-                  onChange={e => setFile(e.target.files[0])}
-                  className="w-full text-sm border rounded-lg p-2 mt-1" />
-                {errors.file && <p className="text-xs text-red-500 mt-1">{errors.file}</p>}
-              </div>
-
-              {/* Title */}
-              <div>
-                <label className="text-xs font-semibold text-gray-500">Title *</label>
-                <input value={form.title} onChange={e => set('title', e.target.value)}
-                  className="w-full text-sm border rounded-lg p-2 mt-1" placeholder="Document title" />
-                {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
-              </div>
-
-              {/* Subject with autocomplete */}
-              <div className="relative">
-                <label className="text-xs font-semibold text-gray-500">Subject *</label>
-                <input value={form.subject_name} onChange={e => set('subject_name', e.target.value)}
-                  className="w-full text-sm border rounded-lg p-2 mt-1" placeholder="e.g. Biology" />
-                {suggestions.length > 0 && (
-                  <div className="absolute z-10 w-full bg-white border rounded-lg mt-1 shadow-lg max-h-40 overflow-y-auto">
-                    {suggestions.map(s => (
-                      <button key={s.id} type="button"
-                        onClick={() => { set('subject_name', s.name); setSuggestions([]) }}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50">{s.name}</button>
-                    ))}
-                  </div>
-                )}
-                {errors.subject_name && <p className="text-xs text-red-500 mt-1">{errors.subject_name}</p>}
-              </div>
-
-              {/* Level & Doc Type */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-gray-500">Level *</label>
-                  <select value={form.level} onChange={e => set('level', e.target.value)}
-                    className="w-full text-sm border rounded-lg p-2 mt-1">
-                    <option value="">Select</option>
-                    {LEVELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-                  </select>
-                  {errors.level && <p className="text-xs text-red-500 mt-1">{errors.level}</p>}
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-500">Type *</label>
-                  <select value={form.doc_type} onChange={e => set('doc_type', e.target.value)}
-                    className="w-full text-sm border rounded-lg p-2 mt-1">
-                    <option value="">Select</option>
-                    {DOC_TYPES.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
-                  </select>
-                  {errors.doc_type && <p className="text-xs text-red-500 mt-1">{errors.doc_type}</p>}
-                </div>
-              </div>
-
-              {/* Year & Price */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-gray-500">Year</label>
-                  <select value={form.year} onChange={e => set('year', e.target.value)}
-                    className="w-full text-sm border rounded-lg p-2 mt-1">
-                    {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-500">Price (MWK)</label>
-                  <input type="number" value={form.price_mwk} onChange={e => set('price_mwk', e.target.value)}
-                    className="w-full text-sm border rounded-lg p-2 mt-1" placeholder="200" />
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="text-xs font-semibold text-gray-500">Description</label>
-                <textarea value={form.description} onChange={e => set('description', e.target.value)}
-                  className="w-full text-sm border rounded-lg p-2 mt-1" rows={2} placeholder="Optional description" />
-              </div>
-
-              {/* Buttons */}
-              <div className="flex gap-2 pt-2">
-                <button onClick={() => setActiveRequest(null)}
-                  className="flex-1 px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">
-                  Cancel
-                </button>
-                <button onClick={handleFulfillUpload} disabled={uploading}
-                  className="flex-1 px-4 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50">
-                  {uploading ? 'Uploading...' : 'Upload & Fulfill'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -1168,6 +997,25 @@ function TabUpload({ onUploadSuccess }) {
 
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: '' })) }
 
+  // Check for fulfill request from requests tab
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('fulfillRequest')
+      if (stored) {
+        const req = JSON.parse(stored)
+        setForm(f => ({
+          ...f,
+          title: req.title || f.title,
+          subject_name: req.subject_name || f.subject_name,
+          level: req.level || f.level,
+          year: req.year ? String(req.year) : f.year,
+          description: req.description || f.description,
+        }))
+        toast.info(`Uploading for request: ${req.title}`)
+      }
+    } catch {}
+  }, [])
+
   useEffect(() => {
     const q = form.subject_name.trim()
     if (q.length < 1) {
@@ -1232,7 +1080,18 @@ function TabUpload({ onUploadSuccess }) {
       }
 
       const { data } = await documentsApi.uploadAdmin(formData)
-      toast.success('Document uploaded and approved successfully!')
+      
+      // Check if this was for fulfilling a request
+      const stored = localStorage.getItem('fulfillRequest')
+      if (stored) {
+        const req = JSON.parse(stored)
+        const newDocId = data?.document?.id
+        await documentsApi.fulfillRequest(req.id, { document_id: newDocId, status: 'fulfilled' })
+        localStorage.removeItem('fulfillRequest')
+        toast.success('Document uploaded and request fulfilled!')
+      } else {
+        toast.success('Document uploaded and approved successfully!')
+      }
 
       // Reset form
       setFile(null)
@@ -1980,7 +1839,7 @@ export default function AdminPage() {
           {tab === 'queue'      && <TabQueue       queue={queue} onApprove={handleApprove} onReject={handleReject} loading={loading} />}
           {tab === 'documents'  && <TabDocuments   documents={documents} loading={loading} onUpdate={handleUpdate} onDelete={handleDelete} />}
           {tab === 'duplicates' && <TabDuplicates  logs={dupLogs} loading={loading} />}
-          {tab === 'requests'  && <TabRequests   requests={requests} loading={loading} documents={documents} onFulfill={handleFulfillRequest} />}
+          {tab === 'requests'  && <TabRequests   requests={requests} loading={loading} onFulfill={handleFulfillRequest} />}
           {tab === 'users'      && <TabUsers       users={users} loading={loading} onSuspend={handleSuspend} />}
           {tab === 'revenue'    && <TabRevenue     revenue={revenue} loading={loading} />}
           {tab === 'settings'   && <TabSettings    settings={settings} loading={loading} onSave={handleSaveSetting} />}
