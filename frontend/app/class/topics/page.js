@@ -3,11 +3,14 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { classApi } from '@/lib/api'
+import Link from 'next/link'
+import Navbar from '@/components/layout/Navbar'
+import { learnApi } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import toast from 'react-hot-toast'
 import {
-  GraduationCap, ArrowLeft, ArrowRight, Loader2, RefreshCw, BookOpen, CheckCircle, Trophy
+  ChevronRight, ChevronLeft, CheckCircle2, Circle,
+  BookOpen, Loader2, GraduationCap, Lock
 } from 'lucide-react'
 
 function TopicsContent() {
@@ -16,186 +19,185 @@ function TopicsContent() {
   const searchParams = useSearchParams()
 
   const [topics, setTopics] = useState([])
+  const [meta, setMeta] = useState({ class_name: '', subject_name: '', subject_icon: '' })
   const [loading, setLoading] = useState(true)
-  const [classInfo, setClassInfo] = useState(null)
 
+  const classId = searchParams.get('class')
   const subjectId = searchParams.get('subject')
 
   useEffect(() => {
-    if (!user || !subjectId) return
+    if (user === null) {
+      router.push('/auth/login')
+      return
+    }
+    if (!classId || !subjectId) {
+      router.push('/class')
+      return
+    }
     loadData()
-  }, [user, subjectId])
+  }, [user, classId, subjectId])
 
   const loadData = async () => {
     setLoading(true)
     try {
-      const myClassRes = await classApi.getMyClass()
-      if (!myClassRes.data?.selected) {
-        router.push('/class')
-        return
-      }
-      
-      setClassInfo(myClassRes.data)
-
-      const { data } = await classApi.getTopics(subjectId)
+      const { data } = await learnApi.getTopics(classId, subjectId)
       setTopics(data || [])
+      
+      if (data?.[0]) {
+        setMeta({
+          class_name: data[0].class_name || '',
+          subject_name: data[0].subject_name || '',
+          subject_icon: data[0].subject_icon || '📚',
+        })
+      }
     } catch (err) {
       const msg = err?.response?.data?.error || 'Failed to load topics'
-      if (msg.includes('class')) {
-        router.push('/class')
-      } else {
-        toast.error(msg)
-      }
+      toast.error(msg)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSelectTopic = (topic) => {
-    router.push(`/class/room/${topic.id}`)
-  }
+  const completedCount = topics.filter(t => t.completed).length
+  const pct = topics.length ? Math.round((completedCount / topics.length) * 100) : 0
 
-  const handleBack = () => {
-    router.push('/class/subjects')
-  }
-
-  if (loading) {
+  if (!user || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfeff 100%)'}}>
-        <Loader2 size={40} className="text-green-500 animate-spin" />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Navbar />
+        <Loader2 size={32} className="text-green-500 animate-spin" />
       </div>
     )
   }
 
-  const completedCount = topics.filter(t => t.is_completed).length
-  const progress = topics.length ? Math.round((completedCount / topics.length) * 100) : 0
-
   return (
-    <div className="min-h-screen flex flex-col" style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfeff 100%)'}}>
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-100 px-5 py-4">
-        <div className="max-w-3xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={handleBack}
-                className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
-              >
-                <ArrowLeft size={20} className="text-gray-600" />
-              </button>
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-                <GraduationCap size={24} className="text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">MY CLASS</h1>
-                <p className="text-sm text-gray-500">Choose a Topic</p>
-              </div>
-            </div>
-            <button onClick={loadData} className="p-2 rounded-xl hover:bg-gray-100">
-              <RefreshCw size={18} className="text-gray-500" />
-            </button>
-          </div>
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-24 pb-16">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 text-sm text-gray-400 mb-8 flex-wrap">
+          <Link href="/class" className="hover:text-green-600 no-underline flex items-center gap-1 transition-colors">
+            <GraduationCap size={14} /> Learning Room
+          </Link>
+          <ChevronRight size={14} />
+          <Link href={`/class/subjects?class=${classId}`} className="hover:text-green-600 no-underline transition-colors">
+            {meta.class_name}
+          </Link>
+          <ChevronRight size={14} />
+          <span className="text-gray-700 font-medium">{meta.subject_icon} {meta.subject_name}</span>
         </div>
-      </header>
 
-      {/* Progress bar */}
-      <div className="bg-white/50 border-b border-gray-50 px-5 py-4">
-        <div className="max-w-3xl mx-auto">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Your Progress</span>
-            <span className="text-sm font-bold text-green-600">{completedCount} / {topics.length} completed</span>
+        {/* Header + progress */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6 shadow-sm">
+          <div className="flex items-start gap-4 mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center text-2xl flex-shrink-0">
+              {meta.subject_icon}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-green-600 uppercase tracking-wider mb-0.5">{meta.class_name}</p>
+              <h1 className="font-serif text-2xl text-gray-900">{meta.subject_name}</h1>
+            </div>
           </div>
-          <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          {completedCount === topics.length && topics.length > 0 && (
-            <div className="mt-3 flex items-center gap-2 text-amber-600 bg-amber-50 px-3 py-2 rounded-xl">
-              <Trophy size={16} />
-              <span className="text-sm font-medium">Congratulations! All topics completed!</span>
+
+          {topics.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-gray-500 font-medium">Your progress</p>
+                <span className="text-xs font-bold text-green-600">{completedCount}/{topics.length} completed</span>
+              </div>
+              <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-green-500 rounded-full transition-all duration-700"
+                  style={{ width: `${pct}%` }} />
+              </div>
+              {pct === 100 && (
+                <p className="text-xs text-green-600 font-semibold mt-2 flex items-center gap-1">
+                  <CheckCircle2 size={12} /> All topics completed! Great work.
+                </p>
+              )}
             </div>
           )}
         </div>
-      </div>
 
-      {/* Progress steps */}
-      <div className="bg-white/50 border-b border-gray-50 px-5 py-3">
-        <div className="max-w-3xl mx-auto flex items-center gap-2 text-xs">
-          <span className="px-2 py-1 bg-green-500 text-white rounded-full font-medium">1</span>
-          <span className="text-gray-400">→</span>
-          <span className="px-2 py-1 bg-green-500 text-white rounded-full font-medium">2</span>
-          <span className="text-gray-400">→</span>
-          <span className="px-2 py-1 bg-green-500 text-white rounded-full font-medium">3</span>
-          <span className="text-gray-400">→</span>
-          <span className="px-2 py-1 bg-gray-200 text-gray-500 rounded-full">4</span>
-          <span className="ml-2 text-gray-500">Class → Subject → Topic → Study</span>
-        </div>
-      </div>
-
-      {/* Topics list */}
-      <main className="flex-1 p-6">
-        <div className="max-w-3xl mx-auto">
-          {topics.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-              <BookOpen size={48} className="text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 mb-2">No topics available yet</p>
-              <p className="text-sm text-gray-400">Check back soon!</p>
+        {/* Topic list */}
+        {topics.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
+              <BookOpen size={26} className="text-gray-300" />
             </div>
-          ) : (
-            <div className="space-y-3">
-              {topics.map((topic, index) => (
-                <button
-                  key={topic.id}
-                  onClick={() => handleSelectTopic(topic)}
-                  className={`w-full group flex items-center gap-4 p-4 bg-white rounded-2xl border-2 transition-all duration-200 text-left hover:shadow-lg hover:-translate-y-0.5
-                    ${topic.is_completed 
-                      ? 'border-green-200 bg-green-50/50' 
-                      : 'border-gray-100 hover:border-green-300'
-                    }`}
-                >
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0
-                    ${topic.is_completed 
-                      ? 'bg-gradient-to-br from-green-500 to-emerald-500 text-white' 
-                      : 'bg-gray-100 text-gray-400 group-hover:bg-green-100 group-hover:text-green-600'
+            <p className="font-semibold text-gray-600 mb-1">No topics yet</p>
+            <p className="text-sm text-gray-400">Admin is still adding topics for this subject.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {topics.map((topic, i) => {
+              const isCompleted = topic.completed
+              const isLocked = i > 0 && !topics[i - 1].completed && !isCompleted
+
+              return (
+                <Link key={topic.id}
+                  href={isLocked ? '#' : `/class/room/${topic.id}?class=${classId}&subject=${subjectId}`}
+                  className={`group block no-underline ${isLocked ? 'cursor-not-allowed opacity-60' : ''}`}
+                  onClick={isLocked ? e => e.preventDefault() : undefined}>
+                  <div className={`flex items-center gap-4 p-4 rounded-2xl border transition-all duration-200
+                    ${isCompleted
+                      ? 'bg-green-50 border-green-200'
+                      : isLocked
+                        ? 'bg-gray-50 border-gray-100'
+                        : 'bg-white border-gray-100 hover:border-green-200 hover:shadow-sm hover:-translate-y-0.5'
                     }`}>
-                    {topic.is_completed ? (
-                      <CheckCircle size={24} />
-                    ) : (
-                      <span className="text-lg font-bold">{index + 1}</span>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm
+                      ${isCompleted ? 'bg-green-500 text-white' : isLocked ? 'bg-gray-200 text-gray-400' : 'bg-green-50 text-green-700 border-2 border-green-200'}`}>
+                      {isCompleted
+                        ? <CheckCircle2 size={18} />
+                        : isLocked
+                          ? <Lock size={14} />
+                          : <span>{String(i + 1).padStart(2, '0')}</span>
+                      }
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-semibold text-sm truncate
+                        ${isCompleted ? 'text-green-800' : isLocked ? 'text-gray-400' : 'text-gray-800 group-hover:text-green-700'}`}>
+                        {topic.title}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {topic.resource_count || 0} resource{(topic.resource_count || 0) !== 1 ? 's' : ''}
+                        {isCompleted && topic.completed_at && (
+                          <span className="ml-2 text-green-600">
+                            · Completed {new Date(topic.completed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                          </span>
+                        )}
+                        {isLocked && <span className="ml-2 text-amber-600">· Complete previous topic first</span>}
+                      </p>
+                    </div>
+
+                    {!isLocked && (
+                      <ChevronRight size={16}
+                        className={`flex-shrink-0 transition-transform group-hover:translate-x-1
+                          ${isCompleted ? 'text-green-400' : 'text-gray-300'}`} />
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className={`font-bold text-base mb-1
-                      ${topic.is_completed ? 'text-green-800' : 'text-gray-900'}`}>
-                      {topic.name}
-                    </h3>
-                    {topic.description && (
-                      <p className="text-xs text-gray-500 line-clamp-1">{topic.description}</p>
-                    )}
-                  </div>
-                  {topic.is_completed ? (
-                    <span className="px-3 py-1 bg-green-500 text-white text-xs font-medium rounded-full">
-                      Done
-                    </span>
-                  ) : (
-                    <ArrowRight size={18} className="text-gray-300 group-hover:text-green-500 group-hover:translate-x-1 transition-all flex-shrink-0" />
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
+                </Link>
+              )
+            })}
+          </div>
+        )}
+
+        <div className="mt-6">
+          <Link href={`/class/subjects?class=${classId}`}
+            className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-green-600 transition-colors no-underline">
+            <ChevronLeft size={15} /> Back to subjects
+          </Link>
         </div>
-      </main>
+      </div>
     </div>
   )
 }
 
 function Loading() {
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfeff 100%)'}}>
-      <Loader2 size={40} className="text-green-500 animate-spin" />
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <Loader2 size={32} className="text-green-500 animate-spin" />
     </div>
   )
 }

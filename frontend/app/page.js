@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { documentsApi, classApi } from '@/lib/api'
+import { documentsApi } from '@/lib/api'
 import api from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 
@@ -12,8 +12,7 @@ export default function LandingPage() {
   const router = useRouter()
   const [recentDocs, setRecentDocs] = useState([])
   const [loading, setLoading] = useState(true)
-  const [myClass, setMyClass] = useState(null)
-  const [checkingClass, setCheckingClass] = useState(false)
+
   const [footerYear, setFooterYear] = useState(new Date().getFullYear())
   const [prices, setPrices] = useState({
     daily: '300',
@@ -87,33 +86,12 @@ export default function LandingPage() {
     return () => clearTimeout(timer)
   }, [])
 
-  // Check if user has selected a class
-  useEffect(() => {
-    if (!user) {
-      setMyClass(null)
-      return
-    }
-    const checkMyClass = async () => {
-      try {
-        const { data } = await classApi.getMyClass()
-        if (data?.selected) {
-          setMyClass(data)
-        }
-      } catch {}
-    }
-    checkMyClass()
-  }, [user])
-
   const handleStartLearning = () => {
     if (!user) {
       router.push('/auth/login')
       return
     }
-    if (!myClass) {
-      router.push('/class')
-    } else {
-      router.push('/class/subjects')
-    }
+    router.push('/class')
   }
 
   const getIconColor = (index) => {
