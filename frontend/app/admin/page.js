@@ -453,6 +453,7 @@ function TabDocuments({ documents, loading, onUpdate, onDelete }) {
 // ── Duplicate log tab ─────────────────────────
 // ── Requests tab ─────────────────────────────────
 function TabRequests({ requests, loading, onFulfill }) {
+  const router = useRouter()
   const [search, setSearch] = useState('')
   const filtered = requests.filter(r =>
     !search || r.title?.toLowerCase().includes(search.toLowerCase()) ||
@@ -471,8 +472,8 @@ function TabRequests({ requests, loading, onFulfill }) {
       description: req.description || '',
     }
     localStorage.setItem('fulfillRequest', JSON.stringify(requestInfo))
-    // Redirect to upload page
-    window.location.href = '/admin?view=upload'
+    // Redirect to upload page using Next.js router (preserves session)
+    router.push('/admin?view=upload')
   }
 
   return (
