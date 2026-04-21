@@ -479,7 +479,7 @@ export default function DashboardPage() {
                 </h2>
                 <div className="flex flex-col gap-2">
                   {[
-                    { href: '/class',      icon: GraduationCap, label: 'MY CLASS',           sub: 'Structured learning by topic',   accent: 'green' },
+                    { href: '/learn',      icon: GraduationCap, label: 'MY CLASS',           sub: 'Structured learning by topic',   accent: 'green' },
                     { href: '/upload',     icon: Upload,       label: 'Upload a document',     sub: 'Contribute & earn free access',  accent: 'amber' },
                     { href: '/browse',     icon: BookOpen,     label: 'Browse library',         sub: 'Search past papers and notes',   accent: 'blue' },
                     { href: '/browse',     icon: Download,     label: 'Download documents',     sub: 'Access your subscribed content', accent: 'purple' },

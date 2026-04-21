@@ -1,13 +1,10 @@
 'use client'
-export const dynamic = 'force-dynamic'
-
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import { learnApi } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
-import toast from 'react-hot-toast'
 import { BookOpen, GraduationCap, ChevronRight, Loader2, TrendingUp } from 'lucide-react'
 
 const CLASS_COLORS = [
@@ -15,11 +12,9 @@ const CLASS_COLORS = [
   { bg: '#E1F5EE', border: '#9FE1CB', text: '#085041', accent: '#1D9E75', num: '02' },
   { bg: '#FAEEDA', border: '#FAC775', text: '#633806', accent: '#BA7517', num: '03' },
   { bg: '#EEEDFE', border: '#CECBF6', text: '#3C3489', accent: '#7F77DD', num: '04' },
-  { bg: '#FDE8E8', border: '#F8B4B4', text: '#7F1D1D', accent: '#DC2626', num: '05' },
-  { bg: '#FEF3C7', border: '#FDE68A', text: '#92400E', accent: '#D97706', num: '06' },
 ]
 
-export default function ClassPage() {
+export default function LearnPage() {
   const { user } = useAuth()
   const router = useRouter()
   const [classes, setClasses] = useState([])
@@ -27,18 +22,13 @@ export default function ClassPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (user === null) {
-      router.push('/auth/login')
-      return
-    }
+    if (user === null) { router.push('/auth/login'); return }
     Promise.all([
       learnApi.getClasses(),
       user ? learnApi.getProgress().catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
     ]).then(([cls, prog]) => {
       setClasses(cls.data || [])
       setProgress(prog.data || [])
-    }).catch(err => {
-      console.error('Failed to load:', err)
     }).finally(() => setLoading(false))
   }, [user])
 
@@ -47,18 +37,17 @@ export default function ClassPage() {
     return acc
   }, {})
 
-  if (!user || loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Navbar />
-        <Loader2 size={32} className="text-green-500 animate-spin" />
-      </div>
-    )
-  }
+  if (!user || loading) return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <Navbar />
+      <Loader2 size={32} className="text-green-500 animate-spin" />
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-24 pb-16">
         <div className="mb-10 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4"
@@ -81,7 +70,7 @@ export default function ClassPage() {
             const completed = completedByClass[cls.name] || 0
 
             return (
-              <Link key={cls.id} href={`/class/subjects?class=${cls.id}`}
+              <Link key={cls.id} href={`/learn/${cls.id}`}
                 className="group block no-underline">
                 <div className="rounded-2xl border-2 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
                   style={{ background: colors.bg, borderColor: colors.border }}>

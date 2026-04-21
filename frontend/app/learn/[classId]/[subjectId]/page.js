@@ -1,74 +1,47 @@
 'use client'
-export const dynamic = 'force-dynamic'
-
-import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import { learnApi } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
-import toast from 'react-hot-toast'
 import {
   ChevronRight, ChevronLeft, CheckCircle2, Circle,
   BookOpen, Loader2, GraduationCap, Lock
 } from 'lucide-react'
 
-function TopicsContent() {
+export default function TopicsPage() {
+  const { classId, subjectId } = useParams()
   const { user } = useAuth()
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   const [topics, setTopics] = useState([])
   const [meta, setMeta] = useState({ class_name: '', subject_name: '', subject_icon: '' })
   const [loading, setLoading] = useState(true)
 
-  const classId = searchParams.get('class')
-  const subjectId = searchParams.get('subject')
-
   useEffect(() => {
-    if (user === null) {
-      router.push('/auth/login')
-      return
-    }
-    if (!classId || !subjectId) {
-      router.push('/class')
-      return
-    }
-    loadData()
-  }, [user, classId, subjectId])
-
-  const loadData = async () => {
-    setLoading(true)
-    try {
-      const { data } = await learnApi.getTopics(classId, subjectId)
-      setTopics(data || [])
-      
-      if (data?.[0]) {
-        setMeta({
-          class_name: data[0].class_name || '',
-          subject_name: data[0].subject_name || '',
-          subject_icon: data[0].subject_icon || '📚',
+    if (user === null) { router.push('/auth/login'); return }
+    learnApi.getTopics(classId, subjectId)
+      .then(r => {
+        setTopics(r.data || [])
+        if (r.data?.[0]) setMeta({
+          class_name: r.data[0].class_name || '',
+          subject_name: r.data[0].subject_name || '',
+          subject_icon: r.data[0].subject_icon || '📚',
         })
-      }
-    } catch (err) {
-      const msg = err?.response?.data?.error || 'Failed to load topics'
-      toast.error(msg)
-    } finally {
-      setLoading(false)
-    }
-  }
+      })
+      .finally(() => setLoading(false))
+  }, [classId, subjectId, user])
 
   const completedCount = topics.filter(t => t.completed).length
   const pct = topics.length ? Math.round((completedCount / topics.length) * 100) : 0
 
-  if (!user || loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Navbar />
-        <Loader2 size={32} className="text-green-500 animate-spin" />
-      </div>
-    )
-  }
+  if (!user || loading) return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <Navbar />
+      <Loader2 size={32} className="text-green-500 animate-spin" />
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -76,11 +49,11 @@ function TopicsContent() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-24 pb-16">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-400 mb-8 flex-wrap">
-          <Link href="/class" className="hover:text-green-600 no-underline flex items-center gap-1 transition-colors">
+          <Link href="/learn" className="hover:text-green-600 no-underline flex items-center gap-1 transition-colors">
             <GraduationCap size={14} /> Learning Room
           </Link>
           <ChevronRight size={14} />
-          <Link href={`/class/subjects?class=${classId}`} className="hover:text-green-600 no-underline transition-colors">
+          <Link href={`/learn/${classId}`} className="hover:text-green-600 no-underline transition-colors">
             {meta.class_name}
           </Link>
           <ChevronRight size={14} />
@@ -135,7 +108,7 @@ function TopicsContent() {
 
               return (
                 <Link key={topic.id}
-                  href={isLocked ? '#' : `/class/room/${topic.id}?class=${classId}&subject=${subjectId}`}
+                  href={isLocked ? '#' : `/learn/${classId}/${subjectId}/${topic.id}`}
                   className={`group block no-underline ${isLocked ? 'cursor-not-allowed opacity-60' : ''}`}
                   onClick={isLocked ? e => e.preventDefault() : undefined}>
                   <div className={`flex items-center gap-4 p-4 rounded-2xl border transition-all duration-200
@@ -184,28 +157,12 @@ function TopicsContent() {
         )}
 
         <div className="mt-6">
-          <Link href={`/class/subjects?class=${classId}`}
+          <Link href={`/learn/${classId}`}
             className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-green-600 transition-colors no-underline">
             <ChevronLeft size={15} /> Back to subjects
           </Link>
         </div>
       </div>
     </div>
-  )
-}
-
-function Loading() {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <Loader2 size={32} className="text-green-500 animate-spin" />
-    </div>
-  )
-}
-
-export default function TopicsPage() {
-  return (
-    <Suspense fallback={<Loading />}>
-      <TopicsContent />
-    </Suspense>
   )
 }

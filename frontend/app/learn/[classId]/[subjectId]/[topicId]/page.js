@@ -1,8 +1,6 @@
 'use client'
-export const dynamic = 'force-dynamic'
-
-import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useParams, useSearchParams } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import { learnApi } from '@/lib/api'
@@ -13,25 +11,17 @@ import {
   BookOpen, Loader2, GraduationCap, FileText, Eye
 } from 'lucide-react'
 
-function RoomContent() {
+export default function LearningRoomPage() {
+  const { classId, subjectId, topicId } = useParams()
   const { user } = useAuth()
   const router = useRouter()
-  const params = useParams()
-  const searchParams = useSearchParams()
-  const topicId = params.topicId
 
   const [roomData, setRoomData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [completing, setCompleting] = useState(false)
 
-  const classId = searchParams.get('class')
-  const subjectId = searchParams.get('subject')
-
   useEffect(() => {
-    if (user === null) {
-      router.push('/auth/login')
-      return
-    }
+    if (user === null) { router.push('/auth/login'); return }
     if (!topicId) return
     loadData()
   }, [user, topicId])
@@ -42,13 +32,8 @@ function RoomContent() {
       const { data } = await learnApi.getResources(topicId)
       setRoomData(data)
     } catch (err) {
-      console.error('Failed to load learning room:', err)
-      const msg = err?.response?.data?.error || 'Failed to load learning room'
-      if (msg.includes('not found')) {
-        router.push(`/class/topics?class=${classId}&subject=${subjectId}`)
-      } else {
-        toast.error(msg)
-      }
+      console.error('Failed to load:', err)
+      toast.error('Failed to load learning room')
     } finally {
       setLoading(false)
     }
@@ -62,41 +47,32 @@ function RoomContent() {
       toast.success(isCompleted ? 'Marked as incomplete' : 'Great job! Topic completed!')
       loadData()
     } catch (err) {
-      const msg = err?.response?.data?.error || 'Failed to update progress'
-      toast.error(msg)
+      toast.error(err?.response?.data?.error || 'Failed to update progress')
     } finally {
       setCompleting(false)
     }
   }
 
-  const handleViewDocument = (docId) => {
-    router.push(`/browse/${docId}`)
-  }
+  if (!user || loading) return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <Navbar />
+      <Loader2 size={32} className="text-green-500 animate-spin" />
+    </div>
+  )
 
-  if (!user || loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Navbar />
-        <Loader2 size={32} className="text-green-500 animate-spin" />
-      </div>
-    )
-  }
-
-  if (!roomData) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <p className="text-gray-500">Topic not found</p>
-            <Link href={`/class/topics?class=${classId}&subject=${subjectId}`} className="text-green-600 mt-2 inline-block">
-              Go back
-            </Link>
-          </div>
+  if (!roomData) return (
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-gray-500">Topic not found</p>
+          <Link href={`/learn/${classId}/${subjectId}`} className="text-green-600 mt-2 inline-block">
+            Go back
+          </Link>
         </div>
       </div>
-    )
-  }
+    </div>
+  )
 
   const { topic, resources } = roomData
   const isCompleted = topic?.completed
@@ -107,15 +83,15 @@ function RoomContent() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-24 pb-16">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-400 mb-8 flex-wrap">
-          <Link href="/class" className="hover:text-green-600 no-underline flex items-center gap-1 transition-colors">
+          <Link href="/learn" className="hover:text-green-600 no-underline flex items-center gap-1 transition-colors">
             <GraduationCap size={14} /> Learning Room
           </Link>
           <ChevronRight size={14} />
-          <Link href={`/class/subjects?class=${classId}`} className="hover:text-green-600 no-underline transition-colors">
+          <Link href={`/learn/${classId}`} className="hover:text-green-600 no-underline transition-colors">
             {topic.class_name}
           </Link>
           <ChevronRight size={14} />
-          <Link href={`/class/topics?class=${classId}&subject=${subjectId}`} className="hover:text-green-600 no-underline transition-colors">
+          <Link href={`/learn/${classId}/${subjectId}`} className="hover:text-green-600 no-underline transition-colors">
             {topic.subject_name}
           </Link>
           <ChevronRight size={14} />
@@ -192,7 +168,7 @@ function RoomContent() {
                     </p>
                   </div>
                   <button
-                    onClick={() => handleViewDocument(doc.id)}
+                    onClick={() => router.push(`/browse/${doc.id}`)}
                     className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
                   >
                     <Eye size={12} />
@@ -205,10 +181,7 @@ function RoomContent() {
             <div className="text-center py-8">
               <BookOpen size={32} className="text-gray-300 mx-auto mb-2" />
               <p className="text-sm text-gray-500">No resources available for this topic yet.</p>
-              <Link 
-                href="/browse"
-                className="mt-3 text-sm text-green-600 font-medium hover:underline inline-block"
-              >
+              <Link href="/browse" className="mt-3 text-sm text-green-600 font-medium hover:underline inline-block">
                 Browse Full Library →
               </Link>
             </div>
@@ -217,28 +190,12 @@ function RoomContent() {
 
         {/* Back button */}
         <div>
-          <Link href={`/class/topics?class=${classId}&subject=${subjectId}`}
+          <Link href={`/learn/${classId}/${subjectId}`}
             className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-green-600 transition-colors no-underline">
             <ChevronLeft size={15} /> Back to topics
           </Link>
         </div>
       </div>
     </div>
-  )
-}
-
-function Loading() {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <Loader2 size={32} className="text-green-500 animate-spin" />
-    </div>
-  )
-}
-
-export default function LearningRoomPage() {
-  return (
-    <Suspense fallback={<Loading />}>
-      <RoomContent />
-    </Suspense>
   )
 }

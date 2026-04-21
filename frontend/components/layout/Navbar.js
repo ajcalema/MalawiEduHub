@@ -14,7 +14,7 @@ export default function Navbar({ onSearch }) {
   const [searchVal,   setSearchVal]   = useState('')
 
   const navLinks = [
-    { href: '/class',    label: 'MY CLASS', icon: GraduationCap },
+    { href: '/learn',    label: 'MY CLASS', icon: GraduationCap },
     { href: '/browse',   label: 'Browse',    icon: BookOpen },
     { href: '/upload',   label: 'Upload',    icon: Upload },
     { href: '/dashboard',label: 'Dashboard', icon: LayoutDashboard },

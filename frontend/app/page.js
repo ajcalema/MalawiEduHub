@@ -91,7 +91,7 @@ export default function LandingPage() {
       router.push('/auth/login')
       return
     }
-    router.push('/class')
+    router.push('/learn')
   }
 
   const getIconColor = (index) => {
