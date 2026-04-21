@@ -511,12 +511,16 @@ function TabRequests({ requests, loading, onFulfill }) {
     if (form.description.trim()) fd.append('description', form.description.trim())
 
     try {
-      await documentsApi.uploadAdmin(fd)
-      await documentsApi.fulfillRequest(activeRequest.id, { status: 'fulfilled' })
+      console.log('Uploading document...')
+      const uploadRes = await documentsApi.uploadAdmin(fd)
+      console.log('Upload done, fulfilling request:', activeRequest.id)
+      await documentsApi.fulfillRequest(activeRequest.id, { status: 'fulfilled', document_id: uploadRes.data?.document?.id })
       toast.success('Document uploaded and request fulfilled!')
+      const reqId = activeRequest.id
       setActiveRequest(null)
-      onFulfill(activeRequest.id)
+      onFulfill(reqId)
     } catch (e) {
+      console.error('Error:', e)
       toast.error(e?.response?.data?.error || 'Upload failed')
     } finally {
       setUploading(false)
