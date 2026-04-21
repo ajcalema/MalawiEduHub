@@ -252,13 +252,13 @@ function Tabs({ active, onChange }) {
   ]
   return (
     <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-2xl mb-6 min-w-max">
+      <div className="flex flex-wrap gap-1 bg-gray-100 p-1 rounded-2xl mb-4">
         {tabs.map(({ key, label, icon: Icon }) => (
           <button key={key} onClick={() => onChange(key)}
-            className={`flex items-center justify-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all whitespace-nowrap
+            className={`flex-1 sm:flex-none min-w-[80px] flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-semibold rounded-xl transition-all
               ${active === key ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
             <Icon size={14} />
-            <span className="hidden xs:inline">{label}</span>
+            <span>{label}</span>
           </button>
         ))}
       </div>
