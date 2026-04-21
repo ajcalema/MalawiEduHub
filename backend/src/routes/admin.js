@@ -24,6 +24,42 @@ router.get('/stats', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+// Analytics endpoint
+router.get('/analytics', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const [signups, topDocs, topUploaders, requests] = await Promise.all([
+      // Signups per day (last 7 days)
+      query(`SELECT DATE(created_at) as date, COUNT(*) as count 
+             FROM users WHERE created_at > NOW() - INTERVAL '7 days' 
+             GROUP BY DATE(created_at) ORDER BY date`),
+      // Top downloaded documents
+      query(`SELECT d.title, d.download_count, s.name as subject
+             FROM documents d 
+             JOIN subjects s ON d.subject_id = s.id 
+             WHERE d.status = 'approved' 
+             ORDER BY d.download_count DESC LIMIT 5`),
+      // Top uploaders
+      query(`SELECT u.full_name, COUNT(d.id) as doc_count
+             FROM users u 
+             JOIN documents d ON d.uploader_id = u.id 
+             WHERE d.status = 'approved' 
+             GROUP BY u.id, u.full_name 
+             ORDER BY doc_count DESC LIMIT 5`),
+      // Request stats
+      query(`SELECT status, COUNT(*) as count FROM document_requests GROUP BY status`),
+    ]);
+    res.json({
+      signups: signups.rows,
+      top_docs: topDocs.rows,
+      top_uploaders: topUploaders.rows,
+      requests: requests.rows,
+    });
+  } catch (err) {
+    console.error('Analytics error:', err);
+    res.status(500).json({ error: 'Failed to fetch analytics.' });
+  }
+});
+
 router.get('/users', requireAuth, requireAdmin, async (req, res) => {
   try {
     const result = await query(

@@ -11,7 +11,7 @@ import {
   Upload, Download, BookOpen, Star, Clock, CheckCircle2,
   AlertCircle, FileText, Loader2, ChevronRight, Calendar,
   Smartphone, CreditCard, RefreshCw, ExternalLink, User,
-  TrendingUp, Award, Zap, Monitor, LogOut, Plus, Search
+  TrendingUp, Award, Zap, Monitor, LogOut, Plus, Search, GraduationCap
 } from 'lucide-react'
 
 // ── Stat card ────────────────────────────────
@@ -479,7 +479,8 @@ export default function DashboardPage() {
                 </h2>
                 <div className="flex flex-col gap-2">
                   {[
-                    { href: '/upload',     icon: Upload,       label: 'Upload a document',     sub: 'Contribute & earn free access',  accent: 'green' },
+                    { href: '/class',      icon: GraduationCap, label: 'MY CLASS',           sub: 'Structured learning by topic',   accent: 'green' },
+                    { href: '/upload',     icon: Upload,       label: 'Upload a document',     sub: 'Contribute & earn free access',  accent: 'amber' },
                     { href: '/browse',     icon: BookOpen,     label: 'Browse library',         sub: 'Search past papers and notes',   accent: 'blue' },
                     { href: '/browse',     icon: Download,     label: 'Download documents',     sub: 'Access your subscribed content', accent: 'purple' },
                   ].map(({ href, icon: Icon, label, sub, accent }) => (
@@ -490,8 +491,8 @@ export default function DashboardPage() {
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0
                         bg-${accent}-50 text-${accent}-600 group-hover:bg-${accent}-100 transition-colors`}
                         style={{
-                          background: accent === 'green' ? '#e6f7f1' : accent === 'blue' ? '#eff6ff' : '#f5f3ff',
-                          color: accent === 'green' ? '#0d7a55' : accent === 'blue' ? '#1d4ed8' : '#7c3aed',
+                          background: accent === 'green' ? '#e6f7f1' : accent === 'amber' ? '#fef3c7' : accent === 'blue' ? '#eff6ff' : '#f5f3ff',
+                          color: accent === 'green' ? '#0d7a55' : accent === 'amber' ? '#b45309' : accent === 'blue' ? '#1d4ed8' : '#7c3aed',
                         }}>
                         <Icon size={16} />
                       </div>

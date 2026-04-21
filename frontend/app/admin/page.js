@@ -24,6 +24,7 @@ const NAV = [
   { key: 'documents',  label: 'All documents',  icon: FileText },
   { key: 'duplicates', label: 'Duplicate log',  icon: AlertTriangle },
   { key: 'requests',   label: 'Requests',      icon: Search,        badge: true },
+  { key: 'analytics',  label: 'Analytics',     icon: TrendingUp },
   { key: 'users',      label: 'Users',          icon: Users },
   { key: 'revenue',    label: 'Revenue',        icon: BarChart2 },
   { key: 'settings',   label: 'Settings',       icon: Settings },
@@ -511,17 +512,17 @@ function TabRequests({ requests, loading, onFulfill }) {
     if (form.description.trim()) fd.append('description', form.description.trim())
 
     try {
-      console.log('Uploading document...')
+      setUploading(true)
       const uploadRes = await documentsApi.uploadAdmin(fd)
-      console.log('Upload done, fulfilling request:', activeRequest.id)
-      await documentsApi.fulfillRequest(activeRequest.id, { status: 'fulfilled', document_id: uploadRes.data?.document?.id })
+      if (uploadRes.data?.document?.id) {
+        await documentsApi.fulfillRequest(activeRequest.id, { status: 'fulfilled', document_id: uploadRes.data.document.id })
+      }
       toast.success('Document uploaded and request fulfilled!')
-      const reqId = activeRequest.id
       setActiveRequest(null)
-      onFulfill(reqId)
+      onFulfill(activeRequest.id)
     } catch (e) {
-      console.error('Error:', e)
-      toast.error(e?.response?.data?.error || 'Upload failed')
+      const errMsg = e?.response?.data?.error || e?.response?.data?.message || 'Upload failed'
+      toast.error(errMsg)
     } finally {
       setUploading(false)
     }
@@ -1729,6 +1730,7 @@ export default function AdminPage() {
 
   // Data state
   const [stats,     setStats]     = useState(null)
+  const [analytics, setAnalytics] = useState(null)
   const [queue,     setQueue]     = useState([])
   const [documents, setDocuments] = useState([])
   const [dupLogs,   setDupLogs]   = useState([])
@@ -1747,9 +1749,10 @@ export default function AdminPage() {
     const silent = opts.silent === true
     if (!silent) setLoading(true)
     try {
-      const [statsRes, queueRes, docsRes, dupRes, requestsRes, usersRes, revRes, settingsRes] =
+      const [statsRes, analyticsRes, queueRes, docsRes, dupRes, requestsRes, usersRes, revRes, settingsRes] =
         await Promise.allSettled([
           adminApi.stats(),
+          adminApi.analytics(),
           documentsApi.queue(),
           documentsApi.browse({ limit: 200, scope: 'all' }),
           documentsApi.duplicateLog(),
@@ -1761,6 +1764,9 @@ export default function AdminPage() {
 
       if (statsRes.status === 'fulfilled') setStats(statsRes.value.data)
       else if (!silent) toast.error('Could not load dashboard stats.')
+
+      if (analyticsRes.status === 'fulfilled') setAnalytics(analyticsRes.value.data)
+      else if (!silent) console.log('Analytics not loaded')
 
       if (queueRes.status === 'fulfilled') {
         const q = queueRes.value.data
@@ -1961,6 +1967,77 @@ export default function AdminPage() {
           {tab === 'documents'  && <TabDocuments   documents={documents} loading={loading} onUpdate={handleUpdate} onDelete={handleDelete} />}
           {tab === 'duplicates' && <TabDuplicates  logs={dupLogs} loading={loading} />}
           {tab === 'requests'  && <TabRequests   requests={requests} loading={loading} onFulfill={handleFulfillRequest} />}
+          {tab === 'analytics' && (
+            <div className="space-y-6">
+              {/* Signups chart */}
+              <div className="bg-white rounded-2xl border border-gray-100 p-5">
+                <h3 className="text-sm font-semibold mb-4">Signups (Last 7 days)</h3>
+                {analytics?.signups?.length > 0 ? (
+                  <div className="flex items-end gap-2 h-40">
+                    {analytics.signups.map((s, i) => (
+                      <div key={i} className="flex-1 flex flex-col items-center">
+                        <div className="w-full bg-green-500 rounded-t" style={{ height: `${(s.count / Math.max(...analytics.signups.map(x => x.count))) * 100}%` }} />
+                        <span className="text-[10px] text-gray-400 mt-1">{s.date?.slice(5)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-gray-400">No signup data</p>}
+              </div>
+
+              {/* Top Documents */}
+              <div className="bg-white rounded-2xl border border-gray-100 p-5">
+                <h3 className="text-sm font-semibold mb-4">Top Documents</h3>
+                {analytics?.top_docs?.length > 0 ? (
+                  <div className="space-y-3">
+                    {analytics.top_docs.map((d, i) => (
+                      <div key={i} className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">{d.title?.slice(0, 40)}</p>
+                          <p className="text-xs text-gray-400">{d.subject}</p>
+                        </div>
+                        <span className="text-sm font-bold text-green-600">{d.download_count} downloads</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-gray-400">No data</p>}
+              </div>
+
+              {/* Top Uploaders */}
+              <div className="bg-white rounded-2xl border border-gray-100 p-5">
+                <h3 className="text-sm font-semibold mb-4">Top Contributors</h3>
+                {analytics?.top_uploaders?.length > 0 ? (
+                  <div className="space-y-3">
+                    {analytics.top_uploaders.map((u, i) => (
+                      <div key={i} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold">
+                            {i + 1}
+                          </div>
+                          <p className="text-sm font-medium">{u.full_name}</p>
+                        </div>
+                        <span className="text-sm font-bold text-green-600">{u.doc_count} docs</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-gray-400">No data</p>}
+              </div>
+
+              {/* Requests */}
+              <div className="bg-white rounded-2xl border border-gray-100 p-5">
+                <h3 className="text-sm font-semibold mb-4">Document Requests</h3>
+                {analytics?.requests?.length > 0 ? (
+                  <div className="flex gap-4">
+                    {analytics.requests.map((r, i) => (
+                      <div key={i} className="flex-1 text-center p-4 bg-gray-50 rounded-xl">
+                        <p className="text-2xl font-bold">{r.count}</p>
+                        <p className="text-xs text-gray-500 capitalize">{r.status}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-gray-400">No requests</p>}
+              </div>
+            </div>
+          )}
           {tab === 'users'      && <TabUsers       users={users} loading={loading} onSuspend={handleSuspend} />}
           {tab === 'revenue'    && <TabRevenue     revenue={revenue} loading={loading} />}
           {tab === 'settings'   && <TabSettings    settings={settings} loading={loading} onSave={handleSaveSetting} />}

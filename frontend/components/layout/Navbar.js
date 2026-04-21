@@ -3,7 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
-import { Search, Menu, X, Upload, LayoutDashboard, Shield, BookOpen, LogOut, User } from 'lucide-react'
+import { Search, Menu, X, Upload, LayoutDashboard, Shield, BookOpen, LogOut, User, GraduationCap } from 'lucide-react'
 
 export default function Navbar({ onSearch }) {
   const { user, logout, isAdmin } = useAuth()
@@ -14,9 +14,10 @@ export default function Navbar({ onSearch }) {
   const [searchVal,   setSearchVal]   = useState('')
 
   const navLinks = [
-    { href: '/browse',    label: 'Browse',   icon: BookOpen },
-    { href: '/upload',    label: 'Upload',   icon: Upload },
-    { href: '/dashboard', label: 'Dashboard',icon: LayoutDashboard },
+    { href: '/class',    label: 'MY CLASS', icon: GraduationCap },
+    { href: '/browse',   label: 'Browse',    icon: BookOpen },
+    { href: '/upload',   label: 'Upload',    icon: Upload },
+    { href: '/dashboard',label: 'Dashboard', icon: LayoutDashboard },
     ...(isAdmin ? [{ href: '/admin', label: 'Admin', icon: Shield }] : []),
   ]
 
@@ -62,15 +63,20 @@ export default function Navbar({ onSearch }) {
 
         {/* Desktop nav links */}
         <div className="hidden md:flex items-center gap-1">
-          {navLinks.map(({ href, label }) => (
-            <Link key={href} href={href}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors no-underline
-                ${pathname.startsWith(href)
-                  ? 'bg-green-50 text-green-700'
-                  : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}>
-              {label}
-            </Link>
-          ))}
+          {navLinks.map(({ href, label }) => {
+            const isMyClass = label === 'MY CLASS'
+            return (
+              <Link key={href} href={href}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors no-underline
+                  ${isMyClass 
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : pathname.startsWith(href)
+                      ? 'bg-green-50 text-green-700'
+                      : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}>
+                {label}
+              </Link>
+            )
+          })}
         </div>
 
         {/* Auth buttons / user menu */}

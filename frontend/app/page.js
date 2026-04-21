@@ -2,12 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { documentsApi } from '@/lib/api'
+import { useRouter } from 'next/navigation'
+import { documentsApi, classApi } from '@/lib/api'
 import api from '@/lib/api'
+import { useAuth } from '@/lib/auth-context'
 
 export default function LandingPage() {
+  const { user } = useAuth()
+  const router = useRouter()
   const [recentDocs, setRecentDocs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [myClass, setMyClass] = useState(null)
+  const [checkingClass, setCheckingClass] = useState(false)
   const [footerYear, setFooterYear] = useState(new Date().getFullYear())
   const [prices, setPrices] = useState({
     daily: '300',
@@ -81,6 +87,35 @@ export default function LandingPage() {
     return () => clearTimeout(timer)
   }, [])
 
+  // Check if user has selected a class
+  useEffect(() => {
+    if (!user) {
+      setMyClass(null)
+      return
+    }
+    const checkMyClass = async () => {
+      try {
+        const { data } = await classApi.getMyClass()
+        if (data?.selected) {
+          setMyClass(data)
+        }
+      } catch {}
+    }
+    checkMyClass()
+  }, [user])
+
+  const handleStartLearning = () => {
+    if (!user) {
+      router.push('/auth/login')
+      return
+    }
+    if (!myClass) {
+      router.push('/class')
+    } else {
+      router.push('/class/subjects')
+    }
+  }
+
   const getIconColor = (index) => {
     const colors = ['g', 'b', 'o']
     return colors[index % 3]
@@ -148,6 +183,12 @@ export default function LandingPage() {
           transition: color 0.2s;
         }
         .nav-links a:hover { color: var(--green); }
+        .nav-link-btn {
+          font-size: 14px; font-weight: 600; color: #059669;
+          background: #ecfdf5; border: none; border-radius: 6px;
+          padding: 6px 14px; cursor: pointer; transition: all 0.2s;
+        }
+        .nav-link-btn:hover { background: #d1fae5; }
         .nav-actions { margin-left: auto; display: flex; gap: 10px; align-items: center; }
         .btn-ghost {
           font-size: 14px; font-weight: 500; padding: 8px 18px;
@@ -562,6 +603,7 @@ export default function LandingPage() {
           <li><a href="#subjects" onClick={(e) => scrollToSection(e, 'subjects')}>Subjects</a></li>
           <li><a href="#pricing" onClick={(e) => scrollToSection(e, 'pricing')}>Pricing</a></li>
           <li><a href="#features" onClick={(e) => scrollToSection(e, 'features')}>Features</a></li>
+          <li><button onClick={handleStartLearning} className="nav-link-btn">MY CLASS</button></li>
         </ul>
         <div className="nav-actions">
           <Link href="/auth/login" className="btn-ghost">Sign in</Link>
@@ -586,6 +628,7 @@ export default function LandingPage() {
             </p>
             <div className="hero-cta">
               <Link href="/browse" className="btn-hero btn-hero-green">Browse the library</Link>
+              <button onClick={handleStartLearning} className="btn-hero btn-hero-green" style={{background: '#059669'}}>MY CLASS</button>
               <a href="#how" className="btn-hero btn-hero-outline" onClick={(e) => scrollToSection(e, 'how')}>How it works</a>
             </div>
             <div className="hero-stats">

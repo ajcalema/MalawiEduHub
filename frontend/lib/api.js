@@ -117,10 +117,31 @@ export const paymentsApi = {
 // ─── Admin ───────────────────────────────────
 export const adminApi = {
   stats:         ()    => api.get('/admin/stats'),
+  analytics:     ()    => api.get('/admin/analytics'),
   users:         ()    => api.get('/admin/users'),
   suspendUser:   (id)  => api.patch(`/admin/users/${id}/suspend`),
   settings:      ()    => api.get('/admin/settings'),
   updateSetting: (key, value) => api.patch(`/admin/settings/${key}`, { value }),
+}
+
+// ─── Class Learning ─────────────────────────
+export const classApi = {
+  // Get all classes
+  getClasses: () => api.get('/class/classes'),
+  // Get user's current class
+  getMyClass: () => api.get('/class/my-class'),
+  // Set user's class
+  selectClass: (classId) => api.post('/class/select-class', { class_id: classId }),
+  // Get subjects filtered by class
+  getSubjects: () => api.get('/class/subjects'),
+  // Get topics filtered by class + subject
+  getTopics: (subjectId) => api.get('/class/topics', { params: { subject_id: subjectId } }),
+  // Mark topic as completed
+  completeTopic: (topicId) => api.post('/class/complete-topic', { topic_id: topicId }),
+  // Get learning room data
+  getLearningRoom: (topicId) => api.get(`/class/learning-room/${topicId}`),
+  // Get next topic
+  getNextTopic: (currentTopicId) => api.get(`/class/next-topic/${currentTopicId}`),
 }
 
 export default api
