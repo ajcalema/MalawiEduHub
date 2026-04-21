@@ -16,10 +16,10 @@ const CLASS_COLORS = [
 
 export default function LearnPage() {
   const { user } = useAuth()
-  const router = useRouter()
-  const [classes, setClasses] = useState([])
+  const router   = useRouter()
+  const [classes,  setClasses]  = useState([])
   const [progress, setProgress] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading,  setLoading]  = useState(true)
 
   useEffect(() => {
     if (user === null) { router.push('/auth/login'); return }
@@ -27,11 +27,12 @@ export default function LearnPage() {
       learnApi.getClasses(),
       user ? learnApi.getProgress().catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
     ]).then(([cls, prog]) => {
-      setClasses(cls.data || [])
-      setProgress(prog.data || [])
+      setClasses(cls.data)
+      setProgress(prog.data)
     }).finally(() => setLoading(false))
   }, [user])
 
+  // Count completed topics per class from progress
   const completedByClass = progress.reduce((acc, p) => {
     if (p.completed) acc[p.class_name] = (acc[p.class_name] || 0) + 1
     return acc
@@ -49,6 +50,8 @@ export default function LearnPage() {
       <Navbar />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-24 pb-16">
+
+        {/* Header */}
         <div className="mb-10 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4"
             style={{ background: '#E1F5EE', border: '1px solid #9FE1CB' }}>
@@ -56,7 +59,7 @@ export default function LearnPage() {
             <span className="text-xs font-semibold text-green-700 uppercase tracking-wider">Learning Room</span>
           </div>
           <h1 className="font-serif text-3xl sm:text-4xl text-gray-900 mb-3">
-            Welcome, {user.full_name?.split(' ')[0] || 'Student'}
+            Welcome, {user.full_name.split(' ')[0]}
           </h1>
           <p className="text-gray-500 text-sm max-w-md mx-auto leading-relaxed">
             Select your class to start your structured learning journey.
@@ -64,16 +67,21 @@ export default function LearnPage() {
           </p>
         </div>
 
+        {/* Class cards */}
         <div className="grid sm:grid-cols-2 gap-5 mb-8">
           {classes.map((cls, i) => {
-            const colors = CLASS_COLORS[i % CLASS_COLORS.length]
+            const colors   = CLASS_COLORS[i % CLASS_COLORS.length]
             const completed = completedByClass[cls.name] || 0
 
             return (
               <Link key={cls.id} href={`/learn/${cls.id}`}
                 className="group block no-underline">
-                <div className="rounded-2xl border-2 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-                  style={{ background: colors.bg, borderColor: colors.border }}>
+                <div className="rounded-2xl border-2 p-6 transition-all duration-300
+                  hover:-translate-y-1 hover:shadow-lg"
+                  style={{
+                    background: colors.bg,
+                    borderColor: colors.border,
+                  }}>
                   <div className="flex items-start justify-between mb-4">
                     <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-serif text-xl font-bold"
                       style={{ background: colors.accent + '20', color: colors.accent }}>
@@ -88,6 +96,7 @@ export default function LearnPage() {
                     <p className="text-sm mb-3 opacity-70" style={{ color: colors.text }}>{cls.description}</p>
                   )}
 
+                  {/* Progress bar */}
                   {completed > 0 && (
                     <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${colors.border}` }}>
                       <div className="flex items-center gap-2">
@@ -104,10 +113,13 @@ export default function LearnPage() {
           })}
         </div>
 
+        {/* Also browse link */}
         <div className="text-center">
           <p className="text-sm text-gray-400 mb-3">Looking for something specific?</p>
           <Link href="/browse"
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-green-700 border-2 border-green-200 rounded-xl hover:bg-green-50 transition-all no-underline">
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold
+              text-green-700 border-2 border-green-200 rounded-xl hover:bg-green-50
+              transition-all no-underline">
             <BookOpen size={15} /> Browse all documents
           </Link>
         </div>

@@ -20,12 +20,11 @@ const SUBJECT_COLORS = [
 
 export default function SubjectsPage() {
   const { classId } = useParams()
-  const { user } = useAuth()
-  const router = useRouter()
-
-  const [subjects, setSubjects] = useState([])
+  const { user }    = useAuth()
+  const router      = useRouter()
+  const [subjects,  setSubjects]  = useState([])
   const [className, setClassName] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading,   setLoading]   = useState(true)
 
   useEffect(() => {
     if (user === null) { router.push('/auth/login'); return }
@@ -47,10 +46,11 @@ export default function SubjectsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-24 pb-16">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-24 pb-16">
+
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-gray-400 mb-8 flex-wrap">
-          <Link href="/learn" className="hover:text-green-600 no-underline flex items-center gap-1 transition-colors">
+        <div className="flex items-center gap-2 text-sm text-gray-400 mb-8">
+          <Link href="/learn" className="hover:text-green-600 transition-colors no-underline flex items-center gap-1">
             <GraduationCap size={14} /> Learning Room
           </Link>
           <ChevronRight size={14} />
@@ -58,49 +58,46 @@ export default function SubjectsPage() {
         </div>
 
         {/* Header */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6 shadow-sm">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center text-2xl flex-shrink-0">
-              🎓
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-green-600 uppercase tracking-wider mb-0.5">Select Subject</p>
-              <h1 className="font-serif text-2xl text-gray-900">{className}</h1>
-            </div>
-          </div>
+        <div className="mb-10">
+          <h1 className="font-serif text-3xl sm:text-4xl text-gray-900 mb-2">
+            {className} — Choose a subject
+          </h1>
+          <p className="text-gray-500 text-sm">Select a subject to see its topics and learning materials.</p>
         </div>
 
-        {/* Subjects grid */}
         {subjects.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
             <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
               <BookOpen size={26} className="text-gray-300" />
             </div>
             <p className="font-semibold text-gray-600 mb-1">No subjects yet</p>
-            <p className="text-sm text-gray-400">Admin is still adding subjects for this class.</p>
+            <p className="text-sm text-gray-400">Admin has not added subjects for this class yet.</p>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 gap-4">
-            {subjects.map((subject, i) => {
-              const colors = SUBJECT_COLORS[i % SUBJECT_COLORS.length]
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {subjects.map((subj, i) => {
+              const c = SUBJECT_COLORS[i % SUBJECT_COLORS.length]
               return (
-                <Link key={subject.id} href={`/learn/${classId}/${subject.id}`}
+                <Link key={subj.subject_id}
+                  href={`/learn/${classId}/${subj.subject_id}`}
                   className="group block no-underline">
-                  <div className="flex items-center gap-4 p-5 rounded-2xl border bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-                    style={{ borderColor: colors.border }}>
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
-                      style={{ background: colors.bg }}>
-                      {subject.subject_icon || '📚'}
+                  <div className="rounded-2xl border-2 p-5 transition-all duration-300
+                    hover:-translate-y-1 hover:shadow-lg h-full"
+                    style={{ background: c.bg, borderColor: c.border }}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+                        style={{ background: c.icon + '20' }}>
+                        {subj.icon_emoji || '📚'}
+                      </div>
+                      <ChevronRight size={18} style={{ color: c.icon }}
+                        className="group-hover:translate-x-1 transition-transform" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-800 group-hover:text-green-700 truncate">
-                        {subject.subject_name}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {subject.topic_count || 0} topic{(subject.topic_count || 0) !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                    <ChevronRight size={18} className="text-gray-300 group-hover:text-green-500 group-hover:translate-x-1 transition-all" />
+                    <h2 className="font-semibold text-base mb-1" style={{ color: c.text }}>
+                      {subj.subject_name}
+                    </h2>
+                    <p className="text-xs font-medium mt-2" style={{ color: c.icon }}>
+                      {subj.topic_count} topic{subj.topic_count !== 1 ? 's' : ''}
+                    </p>
                   </div>
                 </Link>
               )
@@ -108,10 +105,11 @@ export default function SubjectsPage() {
           </div>
         )}
 
-        <div className="mt-6">
+        {/* Back */}
+        <div className="mt-8">
           <Link href="/learn"
             className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-green-600 transition-colors no-underline">
-            <ChevronLeft size={15} /> Back to classes
+            <ChevronLeft size={15} /> Back to class selection
           </Link>
         </div>
       </div>

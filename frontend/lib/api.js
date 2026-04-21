@@ -7,38 +7,25 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
 const api = axios.create({
   baseURL: `${API_URL}/api`,
   headers: { 'Content-Type': 'application/json' },
-  withCredentials: true,
 })
 
 // Attach access token to every request
-// For FormData, remove Content-Type so browser can set it with boundary
 api.interceptors.request.use((config) => {
   const token = Cookies.get('accessToken')
   if (token) config.headers.Authorization = `Bearer ${token}`
-  
-  // If sending FormData, remove explicit Content-Type header
-  // so the browser can set it with the proper multipart boundary
-  if (config.data instanceof FormData) {
-    delete config.headers['Content-Type']
-  }
-  
   return config
 })
 
-// Auto-refresh on 401 and recover missing/expired token cases
+// Auto-refresh on 401 TOKEN_EXPIRED
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config
-    const responseError = error.response?.data?.error
-    const responseCode = error.response?.data?.code
-    const shouldRefresh = error.response?.status === 401 && !original._retry && (
-      responseCode === 'TOKEN_EXPIRED' ||
-      responseError === 'No token provided.' ||
-      responseError === 'Invalid token.'
-    )
-
-    if (shouldRefresh && !original.url?.endsWith('/auth/refresh')) {
+    if (
+      error.response?.status === 401 &&
+      error.response?.data?.code === 'TOKEN_EXPIRED' &&
+      !original._retry
+    ) {
       original._retry = true
       try {
         const refreshToken = Cookies.get('refreshToken')
@@ -49,12 +36,8 @@ api.interceptors.response.use(
         Cookies.set('refreshToken', data.refreshToken, { expires: 30 })
         original.headers.Authorization = `Bearer ${data.accessToken}`
         return api(original)
-      } catch (refreshErr) {
-        // If locked, show message and don't redirect
-        if (error.response?.data?.code === 'ACCOUNT_LOCKED') {
-          return Promise.reject(error)
-        }
-        // Clear session for other errors
+      } catch {
+        // Refresh failed — clear session
         Cookies.remove('accessToken')
         Cookies.remove('refreshToken')
         Cookies.remove('user')
@@ -72,10 +55,6 @@ export const authApi = {
   logout:   (data) => api.post('/auth/logout',   data),
   profile:  ()     => api.get('/auth/profile'),
   refresh:  (data) => api.post('/auth/refresh',  data),
-  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
-  resetPassword: (token, new_password) => api.post('/auth/reset-password', { token, new_password }),
-  sessions: () => api.get('/auth/sessions'),
-  logoutAll: () => api.post('/auth/logout-all'),
 }
 
 // ─── Documents ───────────────────────────────
@@ -83,27 +62,20 @@ export const documentsApi = {
   browse:   (params) => api.get('/documents', { params }),
   get:      (id)     => api.get(`/documents/${id}`),
   download: (id)     => api.get(`/documents/${id}/download`),
-  upload:   (formData) => api.post('/documents/upload', formData),
-  downloads: ()      => api.get('/documents/downloads/user'),
-  // Requests
-  createRequest: (data) => api.post('/documents/requests', data),
-  myRequests: () => api.get('/documents/requests/mine'),
+  upload:   (formData) => api.post('/documents/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
   // Admin
   queue:        ()   => api.get('/documents/admin/queue'),
   duplicateLog: ()   => api.get('/documents/admin/duplicate-log'),
-  uploadAdmin:  (formData) => api.post('/documents/admin/upload', formData),
   approve: (id)      => api.patch(`/documents/admin/${id}/approve`),
   reject:  (id, reason) => api.patch(`/documents/admin/${id}/reject`, { reason }),
   update:  (id, data)   => api.patch(`/documents/admin/${id}`, data),
-  delete:  (id)        => api.delete(`/documents/admin/${id}`),
-  allRequests: () => api.get('/documents/admin/requests'),
-  fulfillRequest: (id, data) => api.patch(`/documents/admin/requests/${id}`, data),
 }
 
 // ─── Subjects ────────────────────────────────
 export const subjectsApi = {
-  /** @param {{ q?: string }} [params] — optional search string for autocomplete */
-  list: (params) => api.get('/subjects', { params }),
+  list: () => api.get('/subjects'),
 }
 
 // ─── Payments ────────────────────────────────
@@ -117,31 +89,29 @@ export const paymentsApi = {
 // ─── Admin ───────────────────────────────────
 export const adminApi = {
   stats:         ()    => api.get('/admin/stats'),
-  analytics:     ()    => api.get('/admin/analytics'),
   users:         ()    => api.get('/admin/users'),
   suspendUser:   (id)  => api.patch(`/admin/users/${id}/suspend`),
   settings:      ()    => api.get('/admin/settings'),
   updateSetting: (key, value) => api.patch(`/admin/settings/${key}`, { value }),
 }
 
-// ─── Learning Room API ─────────────────────────
-export const learnApi = {
-  getClasses: () => api.get('/learn/classes'),
-  getSubjects: (classId) => api.get(`/learn/classes/${classId}/subjects`),
-  getTopics: (classId, subjectId) => api.get(`/learn/classes/${classId}/subjects/${subjectId}/topics`),
-  getResources: (topicId) => api.get(`/learn/topics/${topicId}/resources`),
-  markProgress: (topicId, completed) => api.post(`/learn/topics/${topicId}/progress`, { completed }),
-  getProgress: () => api.get('/learn/progress'),
-  // Admin
-  adminClasses: () => api.get('/learn/admin/classes'),
-  adminTopics: (params) => api.get('/learn/admin/topics', { params }),
-  adminCreateTopic: (data) => api.post('/learn/admin/topics', data),
-  adminUpdateTopic: (id, data) => api.put(`/learn/admin/topics/${id}`, data),
-  adminDeleteTopic: (id) => api.delete(`/learn/admin/topics/${id}`),
-  adminAddResource: (topicId, documentId) => api.post(`/learn/admin/topics/${topicId}/resources`, { document_id: documentId }),
-  adminRemoveResource: (topicId, documentId) => api.delete(`/learn/admin/topics/${topicId}/resources/${documentId}`),
-  adminAddSubject: (classId, subjectId) => api.post(`/learn/admin/classes/${classId}/subjects`, { subject_id: subjectId }),
-  adminRemoveSubject: (classId, subjectId) => api.delete(`/learn/admin/classes/${classId}/subjects/${subjectId}`),
-}
-
 export default api
+
+// ─── Learning Room API ─────────────────────
+export const learnApi = {
+  getClasses:          ()                           => api.get('/learn/classes'),
+  getSubjects:         (classId)                    => api.get(`/learn/classes/${classId}/subjects`),
+  getTopics:           (classId, subjectId)         => api.get(`/learn/classes/${classId}/subjects/${subjectId}/topics`),
+  getResources:        (topicId)                    => api.get(`/learn/topics/${topicId}/resources`),
+  markProgress:        (topicId, completed)         => api.post(`/learn/topics/${topicId}/progress`, { completed }),
+  getProgress:         ()                           => api.get('/learn/progress'),
+  adminClasses:        ()                           => api.get('/learn/admin/classes'),
+  adminTopics:         (params)                     => api.get('/learn/admin/topics', { params }),
+  adminCreateTopic:    (data)                       => api.post('/learn/admin/topics', data),
+  adminUpdateTopic:    (id, data)                   => api.put(`/learn/admin/topics/${id}`, data),
+  adminDeleteTopic:    (id)                         => api.delete(`/learn/admin/topics/${id}`),
+  adminAddResource:    (topicId, documentId)        => api.post(`/learn/admin/topics/${topicId}/resources`, { document_id: documentId }),
+  adminRemoveResource: (topicId, documentId)        => api.delete(`/learn/admin/topics/${topicId}/resources/${documentId}`),
+  adminAddSubject:     (classId, subjectId)         => api.post(`/learn/admin/classes/${classId}/subjects`, { subject_id: subjectId }),
+  adminRemoveSubject:  (classId, subjectId)         => api.delete(`/learn/admin/classes/${classId}/subjects/${subjectId}`),
+}
