@@ -23,6 +23,7 @@ const NAV = [
   { key: 'queue',      label: 'Review queue',   icon: Clock,          badge: true },
   { key: 'documents',  label: 'All documents',  icon: FileText },
   { key: 'duplicates', label: 'Duplicate log',  icon: AlertTriangle },
+  { key: 'requests',   label: 'Requests',      icon: Search,        badge: true },
   { key: 'users',      label: 'Users',          icon: Users },
   { key: 'revenue',    label: 'Revenue',        icon: BarChart2 },
   { key: 'settings',   label: 'Settings',       icon: Settings },
@@ -450,6 +451,70 @@ function TabDocuments({ documents, loading, onUpdate, onDelete }) {
 }
 
 // ── Duplicate log tab ─────────────────────────
+// ── Requests tab ─────────────────────────────────
+function TabRequests({ requests, loading, onFulfill }) {
+  const [search, setSearch] = useState('')
+  const [showFulfill, setShowFulfill] = useState(null)
+  const filtered = requests.filter(r =>
+    !search || r.title?.toLowerCase().includes(search.toLowerCase()) ||
+    r.subject_name?.toLowerCase().includes(search.toLowerCase())
+  )
+  if (loading) return <LoadingSpinner />
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="relative">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search requests…"
+          className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 bg-white
+            focus:outline-none focus:border-green-400" />
+      </div>
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-50">
+              {['Request', 'Subject / Level', 'Status', 'Requested', 'Actions'].map(h => (
+                <th key={h} className="text-left text-xs font-semibold text-gray-400 px-4 py-3 uppercase tracking-wider">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr><td colSpan={5} className="py-12 text-center text-gray-400 text-sm">No pending requests.</td></tr>
+            ) : filtered.map(req => (
+              <tr key={req.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
+                <td className="px-4 py-3">
+                  <p className="text-sm font-medium text-gray-800">{req.title}</p>
+                  {req.description && <p className="text-xs text-gray-400 mt-0.5 truncate">{req.description}</p>}
+                </td>
+                <td className="px-4 py-3">
+                  <p className="text-xs font-medium text-gray-700">{req.subject_name || '—'}</p>
+                  <p className="text-xs text-gray-400 uppercase">{req.level} {req.year && `· ${req.year}`}</p>
+                </td>
+                <td className="px-4 py-3">
+                  <StatusBadge status={req.status} />
+                </td>
+                <td className="px-4 py-3 text-xs text-gray-400">
+                  {new Date(req.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                </td>
+                <td className="px-4 py-3">
+                  {req.status === 'pending' && (
+                    <button onClick={() => setShowFulfill(req.id)}
+                      className="text-xs font-semibold text-green-600 hover:underline">
+                      Fulfill
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ── Duplicates tab ─────────────────────────────────
 function TabDuplicates({ logs, loading }) {
   const LAYER_COLOR = {
     hash:     'bg-red-50 text-red-700 border-red-100',
@@ -1501,6 +1566,7 @@ export default function AdminPage() {
   const [queue,     setQueue]     = useState([])
   const [documents, setDocuments] = useState([])
   const [dupLogs,   setDupLogs]   = useState([])
+  const [requests,  setRequests]  = useState([])
   const [users,     setUsers]     = useState([])
   const [revenue,   setRevenue]   = useState(null)
   const [settings,  setSettings]  = useState([])
@@ -1515,12 +1581,13 @@ export default function AdminPage() {
     const silent = opts.silent === true
     if (!silent) setLoading(true)
     try {
-      const [statsRes, queueRes, docsRes, dupRes, usersRes, revRes, settingsRes] =
+      const [statsRes, queueRes, docsRes, dupRes, requestsRes, usersRes, revRes, settingsRes] =
         await Promise.allSettled([
           adminApi.stats(),
           documentsApi.queue(),
           documentsApi.browse({ limit: 200, scope: 'all' }),
           documentsApi.duplicateLog(),
+          documentsApi.allRequests(),
           adminApi.users(),
           paymentsApi.revenue({ period: 'month' }),
           adminApi.settings(),
@@ -1547,6 +1614,11 @@ export default function AdminPage() {
         const logs = dupRes.value.data
         setDupLogs(Array.isArray(logs) ? logs : [])
       } else if (!silent) toast.error('Could not load duplicate log.')
+
+      if (requestsRes.status === 'fulfilled') {
+        const reqs = requestsRes.value.data
+        setRequests(Array.isArray(reqs) ? reqs : [])
+      } else if (!silent) toast.error('Could not load requests.')
 
       if (usersRes.status === 'fulfilled') {
         const u = usersRes.value.data
@@ -1632,6 +1704,17 @@ export default function AdminPage() {
     }
   }
 
+  const handleFulfillRequest = async (id, documentId) => {
+    try {
+      await documentsApi.fulfillRequest(id, { document_id: documentId })
+      toast.success('Request fulfilled.')
+      setRequests((reqs) => reqs.map((r) => (r.id === id ? { ...r, status: 'fulfilled' } : r)))
+    } catch (e) {
+      console.error(e)
+      toast.error(e?.response?.data?.error || 'Failed to fulfill request.')
+    }
+  }
+
   const handleSaveSetting = async (key, value) => {
     try {
       await adminApi.updateSetting(key, value)
@@ -1711,6 +1794,7 @@ export default function AdminPage() {
           {tab === 'queue'      && <TabQueue       queue={queue} onApprove={handleApprove} onReject={handleReject} loading={loading} />}
           {tab === 'documents'  && <TabDocuments   documents={documents} loading={loading} onUpdate={handleUpdate} onDelete={handleDelete} />}
           {tab === 'duplicates' && <TabDuplicates  logs={dupLogs} loading={loading} />}
+          {tab === 'requests'  && <TabRequests   requests={requests} loading={loading} onFulfill={handleFulfillRequest} />}
           {tab === 'users'      && <TabUsers       users={users} loading={loading} onSuspend={handleSuspend} />}
           {tab === 'revenue'    && <TabRevenue     revenue={revenue} loading={loading} />}
           {tab === 'settings'   && <TabSettings    settings={settings} loading={loading} onSave={handleSaveSetting} />}
