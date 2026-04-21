@@ -454,12 +454,40 @@ function TabDocuments({ documents, loading, onUpdate, onDelete }) {
 // ── Requests tab ─────────────────────────────────
 function TabRequests({ requests, loading, documents, onFulfill }) {
   const [search, setSearch] = useState('')
-  const [showFulfill, setShowFulfill] = useState(null)
+  const [activeRequest, setActiveRequest] = useState(null)
+  const [form, setForm] = useState({ title: '', description: '' })
+  const [uploading, setUploading] = useState(false)
+  const [file, setFile] = useState(null)
   const filtered = requests.filter(r =>
     !search || r.title?.toLowerCase().includes(search.toLowerCase()) ||
     r.subject_name?.toLowerCase().includes(search.toLowerCase())
   )
   if (loading) return <LoadingSpinner />
+
+  const handleFulfillUpload = async () => {
+    if (!file) { toast.error('Select a file first.'); return }
+    setUploading(true)
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('title', activeRequest.title)
+    fd.append('subject_name', activeRequest.subject_name || '')
+    fd.append('level', activeRequest.level || 'other')
+    fd.append('doc_type', 'other')
+    fd.append('year', activeRequest.year || '')
+    try {
+      await documentsApi.uploadAdmin(fd)
+      await documentsApi.fulfillRequest(activeRequest.id, { status: 'fulfilled' })
+      toast.success('Document uploaded and request fulfilled!')
+      setActiveRequest(null)
+      setFile(null)
+      onFulfill(activeRequest.id)
+    } catch (e) {
+      toast.error(e?.response?.data?.error || 'Upload failed.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <div className="relative">
@@ -499,20 +527,10 @@ function TabRequests({ requests, loading, documents, onFulfill }) {
                 </td>
                 <td className="px-4 py-3">
                   {req.status === 'pending' && (
-                    <select onChange={(e) => {
-                      if (e.target.value) {
-                        documentsApi.fulfillRequest(req.id, { document_id: e.target.value, status: 'fulfilled' })
-                          .then(() => { toast.success('Request fulfilled.'); onFulfill(req.id); })
-                          .catch(err => toast.error(err?.response?.data?.error || 'Failed to fulfill.'))
-                      }
-                    }}
-                      className="text-xs border rounded px-2 py-1"
-                      defaultValue="">
-                      <option value="">Fulfill with doc...</option>
-                      {documents.filter(d => d.status === 'approved').map(d => (
-                        <option key={d.id} value={d.id}>{d.title?.slice(0, 30)}</option>
-                      ))}
-                    </select>
+                    <button onClick={() => setActiveRequest(req)}
+                      className="text-xs font-semibold text-green-600 hover:underline">
+                      Upload & Fulfill
+                    </button>
                   )}
                 </td>
               </tr>
@@ -520,6 +538,34 @@ function TabRequests({ requests, loading, documents, onFulfill }) {
           </tbody>
         </table>
       </div>
+
+      {/* Upload modal */}
+      {activeRequest && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Upload document for request</h3>
+            <p className="text-sm text-gray-600 mb-4">Request: <strong>{activeRequest.title}</strong></p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-500">Select PDF/DOCX/PPTX file</label>
+                <input type="file" accept=".pdf,.docx,.pptx"
+                  onChange={e => setFile(e.target.files[0])}
+                  className="w-full text-sm border rounded-lg p-2 mt-1" />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setActiveRequest(null)}
+                  className="flex-1 px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">
+                  Cancel
+                </button>
+                <button onClick={handleFulfillUpload} disabled={uploading || !file}
+                  className="flex-1 px-4 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50">
+                  {uploading ? 'Uploading...' : 'Upload & Fulfill'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
