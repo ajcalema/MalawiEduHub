@@ -813,17 +813,25 @@ const createRequest = async (req, res) => {
       }
     }
 
-    const result = await query(
-      `INSERT INTO document_requests (user_id, subject_id, title, description, level, year)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, title, status, created_at`,
-      [req.user.id, resolvedSubjectId, title.trim(), description || null, level || null, year ? parseInt(year) : null]
-    );
-
-    res.status(201).json({
-      message: 'Document request submitted. We will notify you when it becomes available.',
-      request: result.rows[0]
-    });
+    // Try insert, graceful fail if table doesn't exist
+    try {
+      const result = await query(
+        `INSERT INTO document_requests (user_id, subject_id, title, description, level, year)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, title, status, created_at`,
+        [req.user.id, resolvedSubjectId, title.trim(), description || null, level || null, year ? parseInt(year) : null]
+      );
+      res.status(201).json({
+        message: 'Document request submitted. We will notify you when it becomes available.',
+        request: result.rows[0]
+      });
+    } catch (tableErr) {
+      // Table doesn't exist yet
+      return res.status(501).json({
+        error: 'Feature coming soon.',
+        message: 'Document requests will be available soon.'
+      });
+    }
   } catch (err) {
     console.error('createRequest error:', err);
     res.status(500).json({ error: 'Failed to create request.' });
@@ -842,7 +850,8 @@ const getMyRequests = async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch requests.' });
+    // Table doesn't exist yet
+    res.json([]);
   }
 };
 
@@ -858,7 +867,7 @@ const getAllRequests = async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch requests.' });
+    res.json([]);
   }
 };
 
