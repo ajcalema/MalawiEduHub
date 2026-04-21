@@ -139,43 +139,57 @@ const login = async (req, res) => {
     if (!user) return res.status(401).json({ error: 'Invalid credentials.' });
     if (user.status === 'suspended') return res.status(403).json({ error: 'Account suspended.' });
 
-    if (user.locked_until && new Date(user.locked_until) > new Date()) {
-      const remain = Math.ceil((new Date(user.locked_until) - new Date()) / 1000 / 60);
-      return res.status(403).json({
-        error: `Account locked. Try again in ${remain} minutes.`,
-        code: 'ACCOUNT_LOCKED',
-        locked_until: user.locked_until
-      });
+    // Check if locked (handle missing column)
+    try {
+      if (user.locked_until && new Date(user.locked_until) > new Date()) {
+        const remain = Math.ceil((new Date(user.locked_until) - new Date()) / 1000 / 60);
+        return res.status(403).json({
+          error: `Account locked. Try again in ${remain} minutes.`,
+          code: 'ACCOUNT_LOCKED',
+          locked_until: user.locked_until
+        });
+      }
+    } catch {
+      // Column doesn't exist yet
     }
 
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) {
-      const attempts = (user.failed_login_attempts || 0) + 1;
-      if (attempts >= 5) {
+      // Track failed attempts (optional - ignore if columns missing)
+      try {
+        const attempts = (user.failed_login_attempts || 0) + 1;
+        if (attempts >= 5) {
+          await query(
+            `UPDATE users SET failed_login_attempts = 0, locked_until = NOW() + INTERVAL '15 minutes' WHERE id = $1`,
+            [user.id]
+          );
+          return res.status(403).json({
+            error: 'Too many failed attempts. Account locked for 15 minutes.',
+            code: 'ACCOUNT_LOCKED'
+          });
+        }
         await query(
-          `UPDATE users SET failed_login_attempts = 0, locked_until = NOW() + INTERVAL '15 minutes' WHERE id = $1`,
-          [user.id]
+          `UPDATE users SET failed_login_attempts = $1 WHERE id = $2`,
+          [attempts, user.id]
         );
-        return res.status(403).json({
-          error: 'Too many failed attempts. Account locked for 15 minutes.',
-          code: 'ACCOUNT_LOCKED'
+        return res.status(401).json({
+          error: 'Invalid credentials.',
+          attempts_remaining: 5 - attempts
         });
+      } catch {
+        return res.status(401).json({ error: 'Invalid credentials.' });
       }
-      await query(
-        `UPDATE users SET failed_login_attempts = $1 WHERE id = $2`,
-        [attempts, user.id]
-      );
-      return res.status(401).json({
-        error: 'Invalid credentials.',
-        attempts_remaining: 5 - attempts
-      });
     }
 
-    // Reset failed attempts on successful login
-    await query(
-      `UPDATE users SET last_login_at = NOW(), failed_login_attempts = 0, locked_until = NULL WHERE id = $1`,
-      [user.id]
-    );
+    // Reset failed attempts on successful login (optional columns)
+    try {
+      await query(
+        `UPDATE users SET last_login_at = NOW(), failed_login_attempts = 0, locked_until = NULL WHERE id = $1`,
+        [user.id]
+      );
+    } catch {
+      // Columns may not exist yet - ignore
+    }
 
     const accessToken  = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
@@ -193,11 +207,21 @@ const login = async (req, res) => {
       return 'Desktop';
     };
 
-    await query(
-      `INSERT INTO refresh_tokens (user_id, token_hash, expires_at, device_name, ip_address, user_agent)
-       VALUES ($1, $2, NOW() + INTERVAL '30 days', $3, $4, $5)`,
-      [user.id, hashToken(refreshToken), getDeviceName(userAgent), ip, userAgent]
-    );
+    // Save refresh token (optional columns - graceful degradation)
+    try {
+      await query(
+        `INSERT INTO refresh_tokens (user_id, token_hash, expires_at, device_name, ip_address, user_agent)
+         VALUES ($1, $2, NOW() + INTERVAL '30 days', $3, $4, $5)`,
+        [user.id, hashToken(refreshToken), getDeviceName(userAgent), ip, userAgent]
+      );
+    } catch {
+      // Columns don't exist yet - use basic insert
+      await query(
+        `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
+         VALUES ($1, $2, NOW() + INTERVAL '30 days')`,
+        [user.id, hashToken(refreshToken)]
+      );
+    }
 
     // Fetch active subscription
     const sub = await query(
