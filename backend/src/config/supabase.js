@@ -12,19 +12,22 @@ console.log('🔧 Supabase Config:', {
   bucket: bucketName
 });
 
-if (!supabaseUrl || !supabaseKey) {
+let supabase = null;
+
+if (supabaseUrl && supabaseKey) {
+  supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+    global: {
+      fetch: fetch,
+    },
+  });
+  console.log('✅ Supabase Storage configured for bucket:', bucketName);
+} else {
   console.warn('⚠️  Supabase credentials not configured. File uploads will fail.');
 }
-
-const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-  },
-  global: {
-    fetch: fetch,
-  },
-});
 
 /**
  * Upload a file to Supabase Storage
@@ -34,6 +37,10 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
  * @returns {Promise<string>} - The public URL of the uploaded file
  */
 const uploadFile = async (fileBuffer, fileName, contentType) => {
+  if (!supabase) {
+    throw new Error('Supabase not configured. Please add SUPABASE_URL and SUPABASE_ANON_KEY to your .env file.');
+  }
+  
   const { data, error } = await supabase
     .storage
     .from(bucketName)
@@ -61,6 +68,10 @@ const uploadFile = async (fileBuffer, fileName, contentType) => {
  * @returns {Promise<Buffer>} - The file buffer
  */
 const downloadFile = async (fileName) => {
+  if (!supabase) {
+    throw new Error('Supabase not configured.');
+  }
+  
   const { data, error } = await supabase
     .storage
     .from(bucketName)
@@ -78,6 +89,10 @@ const downloadFile = async (fileName) => {
  * @param {string} fileName - The file name/path
  */
 const deleteFile = async (fileName) => {
+  if (!supabase) {
+    throw new Error('Supabase not configured.');
+  }
+  
   const { error } = await supabase
     .storage
     .from(bucketName)
@@ -94,6 +109,10 @@ const deleteFile = async (fileName) => {
  * @returns {string} - The public URL
  */
 const getPublicUrl = (fileName) => {
+  if (!supabase) {
+    return null;
+  }
+  
   const { data: { publicUrl } } = supabase
     .storage
     .from(bucketName)
@@ -101,8 +120,6 @@ const getPublicUrl = (fileName) => {
 
   return publicUrl;
 };
-
-console.log('✅ Supabase Storage configured for bucket:', bucketName);
 
 module.exports = {
   supabase,

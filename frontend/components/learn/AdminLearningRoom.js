@@ -341,6 +341,232 @@ function LessonForm({ topicId, initial, onSave, onCancel }) {
   )
 }
 
+// ── Quiz form (create / edit with questions) ────────────────
+function QuizForm({ topicId, initial, onSave, onCancel }) {
+  const [form, setForm] = useState(
+    initial || { topic_id: topicId, title: '', description: '', passing_score: 70, time_limit_minutes: null, is_active: true }
+  )
+  const [saving, setSaving] = useState(false)
+  const [questions, setQuestions] = useState([])
+  const [showQuestionForm, setShowQuestionForm] = useState(false)
+  const [editQuestion, setEditQuestion] = useState(null)
+  const [newQuestion, setNewQuestion] = useState({ question_text: '', question_type: 'multiple_choice', points: 1 })
+  const [answers, setAnswers] = useState([])
+  const [newAnswer, setNewAnswer] = useState({ answer_text: '', is_correct: false })
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  useEffect(() => {
+    if (initial?.id) {
+      // Load questions for this quiz
+      lessonsApi.adminGetQuizzes(topicId)
+        .then(r => {
+          const quiz = r.data?.find(q => q.id === initial.id)
+          if (quiz) {
+            setForm({
+              topic_id: quiz.topic_id,
+              title: quiz.title || '',
+              description: quiz.description || '',
+              passing_score: quiz.passing_score || 70,
+              time_limit_minutes: quiz.time_limit_minutes,
+              is_active: quiz.is_active !== false
+            })
+          }
+        })
+        .catch(() => {})
+    }
+  }, [initial?.id, topicId])
+
+  const handleSaveQuiz = async () => {
+    if (!form.title.trim()) {
+      toast.error('Quiz title is required.')
+      return
+    }
+    setSaving(true)
+    try {
+      if (initial?.id) {
+        await lessonsApi.adminUpdateQuiz(initial.id, form)
+        toast.success('Quiz updated.')
+      } else {
+        const { data } = await lessonsApi.adminCreateQuiz(form)
+        toast.success('Quiz created.')
+        if (onSave && onSave.redirect) {
+          onSave.redirect(data.id)
+          return
+        }
+      }
+      onSave()
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'Failed to save quiz.')
+    } finally { setSaving(false) }
+  }
+
+  const handleAddQuestion = async () => {
+    if (!newQuestion.question_text.trim()) {
+      toast.error('Question text is required.')
+      return
+    }
+    if (!initial?.id) {
+      toast.error('Please save the quiz first before adding questions.')
+      return
+    }
+    try {
+      const { data } = await lessonsApi.adminCreateQuestion(initial.id, newQuestion)
+      toast.success('Question added.')
+      setNewQuestion({ question_text: '', question_type: 'multiple_choice', points: 1 })
+      setShowQuestionForm(false)
+      setEditQuestion(null)
+    } catch (err) {
+      toast.error('Failed to add question.')
+    }
+  }
+
+  const handleAddAnswer = async (questionId) => {
+    if (!newAnswer.answer_text.trim()) {
+      toast.error('Answer text is required.')
+      return
+    }
+    try {
+      await lessonsApi.adminCreateAnswer(questionId, newAnswer)
+      toast.success('Answer added.')
+      setNewAnswer({ answer_text: '', is_correct: false })
+    } catch (err) {
+      toast.error('Failed to add answer.')
+    }
+  }
+
+  const handleDeleteQuestion = async (questionId) => {
+    if (!confirm('Delete this question and all its answers?')) return
+    try {
+      await lessonsApi.adminDeleteQuestion(initial.id, questionId)
+      toast.success('Question deleted.')
+    } catch {
+      toast.error('Failed to delete question.')
+    }
+  }
+
+  const handleDeleteAnswer = async (questionId, answerId) => {
+    if (!confirm('Delete this answer?')) return
+    try {
+      await lessonsApi.adminDeleteAnswer(questionId, answerId)
+      toast.success('Answer deleted.')
+    } catch {
+      toast.error('Failed to delete answer.')
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+      <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <HelpCircle size={15} className="text-purple-600" />
+        {initial?.id ? 'Edit Quiz' : 'Create New Quiz'}
+      </h3>
+      
+      {/* Quiz Settings */}
+      <div className="mb-6 p-4 bg-purple-50 rounded-xl border border-purple-100">
+        <h4 className="text-xs font-semibold text-purple-900 uppercase tracking-wider mb-3">Quiz Settings</h4>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-semibold text-gray-700 block mb-1">Quiz Title *</label>
+            <input value={form.title} onChange={e => set('title', e.target.value)}
+              placeholder="e.g. Cell Biology Assessment"
+              className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white focus:outline-none focus:border-purple-400" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-700 block mb-1">Description (Optional)</label>
+            <textarea value={form.description || ''} onChange={e => set('description', e.target.value)}
+              placeholder="Brief description of this quiz..."
+              rows={2}
+              className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white focus:outline-none focus:border-purple-400" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-gray-700 block mb-1">Passing Score (%)</label>
+              <input type="number" value={form.passing_score} onChange={e => set('passing_score', parseInt(e.target.value) || 70)}
+                min="0" max="100"
+                className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white text-center" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-700 block mb-1">Time Limit (minutes, optional)</label>
+              <input type="number" value={form.time_limit_minutes || ''} onChange={e => set('time_limit_minutes', e.target.value ? parseInt(e.target.value) : null)}
+                placeholder="No limit"
+                className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white text-center" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Save Quiz Button */}
+      <div className="flex gap-2 justify-end mb-6 pb-6 border-b border-gray-100">
+        <button onClick={onCancel}
+          className="px-4 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">
+          Cancel
+        </button>
+        <button onClick={handleSaveQuiz} disabled={saving}
+          className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-purple-500 rounded-xl hover:bg-purple-400 disabled:opacity-50">
+          {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+          {initial?.id ? 'Save Quiz' : 'Create Quiz'}
+        </button>
+      </div>
+
+      {/* Questions Section */}
+      {initial?.id && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+              <ListChecks size={13} className="text-purple-600" />
+              Questions
+            </h4>
+            <button onClick={() => setShowQuestionForm(!showQuestionForm)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                showQuestionForm 
+                  ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-purple-500 text-white hover:bg-purple-400'
+              }`}>
+              {showQuestionForm ? 'Cancel' : '+ Add Question'}
+            </button>
+          </div>
+
+          {/* Add Question Form */}
+          {showQuestionForm && (
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-4 mb-4 border border-purple-100">
+              <p className="text-xs font-semibold text-gray-700 mb-3">Add New Question</p>
+              <div className="space-y-3">
+                <textarea value={newQuestion.question_text} onChange={e => setNewQuestion({...newQuestion, question_text: e.target.value})}
+                  placeholder="Enter your question here..."
+                  rows={3}
+                  className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white" />
+                <div className="grid grid-cols-2 gap-3">
+                  <select value={newQuestion.question_type} onChange={e => setNewQuestion({...newQuestion, question_type: e.target.value})}
+                    className="px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white">
+                    <option value="multiple_choice">Multiple Choice</option>
+                    <option value="true_false">True/False</option>
+                    <option value="short_answer">Short Answer</option>
+                  </select>
+                  <input type="number" value={newQuestion.points} onChange={e => setNewQuestion({...newQuestion, points: parseInt(e.target.value) || 1})}
+                    min="1"
+                    className="px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white text-center" />
+                </div>
+                <button onClick={handleAddQuestion}
+                  className="w-full px-3 py-2.5 text-xs font-semibold text-white bg-purple-500 rounded-lg hover:bg-purple-400">
+                  ✓ Add Question
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Questions List - Placeholder for now */}
+          <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+            <ListChecks size={32} className="text-gray-300 mx-auto mb-2" />
+            <p className="text-sm text-gray-500">Question management coming soon</p>
+            <p className="text-xs text-gray-400 mt-1">Questions will appear here once added</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Resource linker for a topic ───────────────
 function ResourceLinker({ topicId, onClose }) {
   const [search,    setSearch]    = useState('')
@@ -647,19 +873,54 @@ export default function TabLearningRoom() {
       
       {/* Lesson & Quiz management for a topic */}
       {manageTopic && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                <Layers size={15} className="text-blue-600" />
-                Manage topic: <span className="text-green-700">{manageTopic.title}</span>
-              </h3>
-              <p className="text-xs text-gray-400 mt-1">{lessons.length} lesson(s) · {quizzes.length} quiz(zes)</p>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+          {/* Enhanced Header with Breadcrumb and Back Button */}
+          <div className="border-b border-gray-100 p-5 pb-4">
+            {/* Breadcrumb Navigation */}
+            <div className="flex items-center gap-2 mb-3">
+              <button 
+                onClick={() => { setManageTopic(null); setShowLessonForm(false); setEditLesson(null); setShowQuizForm(false); setEditQuiz(null) }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-all group">
+                <ChevronDown size={14} className="group-hover:-translate-x-0.5 transition-transform rotate-90" />
+                <span>Back to All Topics</span>
+              </button>
+              <span className="text-xs text-gray-400">/</span>
+              <span className="text-xs text-gray-600 font-medium">{manageTopic.class_name}</span>
+              <span className="text-xs text-gray-400">·</span>
+              <span className="text-xs text-gray-600 font-medium">{manageTopic.subject_icon} {manageTopic.subject_name}</span>
             </div>
-            <button onClick={() => { setManageTopic(null); setShowLessonForm(false); setEditLesson(null); setShowQuizForm(false); setEditQuiz(null) }} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
-              <X size={15} />
-            </button>
+            
+            {/* Topic Title and Progress */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Layers size={18} className="text-blue-600" />
+                  {manageTopic.title}
+                </h3>
+                {manageTopic.description && (
+                  <p className="text-xs text-gray-500 mt-1">{manageTopic.description}</p>
+                )}
+                <div className="flex items-center gap-3 mt-2">
+                  <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded-md border border-blue-100">
+                    {lessons.length} lesson{lessons.length !== 1 ? 's' : ''}
+                  </span>
+                  <span className="text-xs font-semibold text-purple-700 bg-purple-50 px-2 py-1 rounded-md border border-purple-100">
+                    {quizzes.length} quiz{quizzes.length !== 1 ? 'zes' : ''}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Quick Stats Card */}
+              <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-xl p-3 border border-green-100">
+                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Progress</p>
+                <p className="text-2xl font-bold text-gray-900">{lessons.length}</p>
+                <p className="text-[10px] text-gray-500">lessons created</p>
+              </div>
+            </div>
           </div>
+          
+          {/* Content Area */}
+          <div className="p-5">
           
           {/* Tabs */}
           <div className="flex gap-2 mb-4 border-b border-gray-100">
@@ -765,16 +1026,24 @@ export default function TabLearningRoom() {
           {/* Quizzes Tab */}
           {activeTab === 'quizzes' && (
             <div>
-              {/* Quiz form placeholder */}
+              {/* Quiz form */}
               {(showQuizForm || editQuiz) && (
-                <div className="mb-4 p-6 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                  <HelpCircle size={32} className="text-purple-300 mx-auto mb-2" />
-                  <p className="text-sm font-semibold text-gray-700 mb-1">Quiz Builder</p>
-                  <p className="text-xs text-gray-500 mb-3">Create quizzes with questions and multiple-choice answers</p>
-                  <button onClick={() => { setShowQuizForm(false); setEditQuiz(null) }}
-                    className="px-3 py-1.5 text-xs font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-100">
-                    Close
-                  </button>
+                <div className="mb-4">
+                  <QuizForm
+                    topicId={manageTopic.id}
+                    initial={editQuiz}
+                    onSave={(quizId) => { 
+                      setShowQuizForm(false); 
+                      setEditQuiz(null); 
+                      loadQuizzes(manageTopic.id);
+                      // If a new quiz was created, edit it
+                      if (quizId) {
+                        const newQuiz = quizzes.find(q => q.id === quizId)
+                        if (newQuiz) setEditQuiz(newQuiz)
+                      }
+                    }}
+                    onCancel={() => { setShowQuizForm(false); setEditQuiz(null) }}
+                  />
                 </div>
               )}
               
@@ -833,6 +1102,7 @@ export default function TabLearningRoom() {
               )}
             </div>
           )}
+          </div>
         </div>
       )}
 
