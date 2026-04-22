@@ -1748,41 +1748,62 @@ export default function AdminPage() {
     loadData()
   }, [user, isAdmin])
 
-  const loadData = async (opts = {}) => {
+const loadData = async (opts = {}) => {
     const silent = opts.silent === true
     if (!silent) setLoading(true)
     try {
-      const [statsRes, analyticsRes, queueRes, docsRes, dupRes, requestsRes, usersRes, revRes, settingsRes] =
-        await Promise.allSettled([
-          adminApi.stats(),
-          adminApi.analytics(),
-          documentsApi.queue(),
-          documentsApi.browse({ limit: 200, scope: 'all' }),
-          documentsApi.duplicateLog(),
-          documentsApi.allRequests(),
-          adminApi.users(),
-          paymentsApi.revenue({ period: 'month' }),
-          adminApi.settings(),
-        ])
+      // Load sequentially to avoid Promise.allSettled issues
+      try {
+        const stats = await adminApi.stats()
+        setStats(stats.data)
+      } catch (e) { console.error('stats error:', e) }
 
-      if (statsRes.status === 'fulfilled') setStats(statsRes.value.data)
+      try {
+        const analytics = await adminApi.analytics()
+        setAnalytics(analytics.data)
+      } catch (e) { console.error('analytics error:', e) }
 
-      if (analyticsRes.status === 'fulfilled') setAnalytics(analyticsRes.value.data)
-      else if (!silent) console.log('Analytics not loaded')
+      try {
+        const queue = await documentsApi.queue()
+        setQueue(queue.data || [])
+      } catch (e) { console.error('queue error:', e) }
 
-      if (queueRes.status === 'fulfilled') {
-        const q = queueRes.value.data
-        setQueue(Array.isArray(q) ? q : [])
-      } else if (!silent) toast.error('Could not load review queue.')
+      try {
+        const docs = await documentsApi.browse({ limit: 200, scope: 'all' })
+        setDocuments(Array.isArray(docs.data?.documents) ? docs.data.documents : (Array.isArray(docs.data) ? docs.data : []))
+      } catch (e) { console.error('docs error:', e) }
 
-      if (docsRes.status === 'fulfilled') {
-        const payload = docsRes.value.data
-        const list = Array.isArray(payload?.documents) ? payload.documents : (Array.isArray(payload) ? payload : [])
-        setDocuments(list)
-      } else {
-        console.error('Admin documents load failed:', docsRes.reason)
-        if (!silent) toast.error('Could not load all documents.')
-      }
+      try {
+        const dup = await documentsApi.duplicateLog()
+        setDupLogs(dup.data || [])
+      } catch (e) { console.error('dup error:', e) }
+
+      try {
+        const reqs = await documentsApi.allRequests()
+        setRequests(reqs.data || [])
+      } catch (e) { console.error('requests error:', e) }
+
+      try {
+        const users = await adminApi.users()
+        setUsers(Array.isArray(users.data) ? users.data : [])
+      } catch (e) { console.error('users error:', e) }
+
+      try {
+        const rev = await paymentsApi.revenue({ period: 'month' })
+        setRevenue(rev.data)
+      } catch (e) { console.error('revenue error:', e) }
+
+      try {
+        const settings = await adminApi.settings()
+        setSettings(Array.isArray(settings.data) ? settings.data : [])
+      } catch (e) { console.error('settings error:', e) }
+    } catch (e) {
+      console.error(e)
+      if (!silent) toast.error('Failed to refresh admin data.')
+    } finally {
+      if (!silent) setLoading(false)
+    }
+  }
 
       if (dupRes.status === 'fulfilled') {
         const logs = dupRes.value.data
