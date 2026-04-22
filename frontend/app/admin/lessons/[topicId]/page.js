@@ -3,11 +3,11 @@ import { useState, useEffect, Suspense } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
-import { lessonsApi } from '@/lib/api'
+import { lessonsApi, documentsApi } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import {
   ArrowLeft, Save, BookOpen, FileText, Video, ListChecks,
-  Loader2, Trash2
+  Loader2, Trash2, Upload, X
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -38,6 +38,8 @@ function LessonEditorContent() {
     content: '', 
     document_id: '' 
   })
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const [selectedFile, setSelectedFile] = useState(null)
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -114,15 +116,45 @@ function LessonEditorContent() {
       toast.error('Please save the lesson first before adding materials.')
       return
     }
+    
+    // If a file is selected, upload it first
+    let documentId = newMaterial.document_id
+    if (selectedFile) {
+      setUploadingFile(true)
+      try {
+        const formData = new FormData()
+        formData.append('file', selectedFile)
+        formData.append('title', newMaterial.title.trim())
+        formData.append('subject_name', 'Learning Room')
+        formData.append('level', 'learning-room')
+        formData.append('doc_type', 'notes')
+        formData.append('year', String(new Date().getFullYear()))
+        formData.append('description', `Supporting material for lesson`)
+        
+        const { data } = await documentsApi.uploadAdmin(formData)
+        documentId = data.document.id
+        toast.success('File uploaded successfully!')
+      } catch (err) {
+        toast.error(err?.response?.data?.error || 'File upload failed.')
+        setUploadingFile(false)
+        return
+      } finally {
+        setUploadingFile(false)
+      }
+    }
+    
     try {
       await lessonsApi.adminCreateMaterial(lessonId, {
-        ...newMaterial,
-        document_id: newMaterial.document_id || null
+        title: newMaterial.title.trim(),
+        material_type: newMaterial.material_type,
+        content: newMaterial.content || null,
+        document_id: documentId || null
       })
       toast.success('Material added.')
       const { data } = await lessonsApi.adminGetMaterials(lessonId)
       setMaterials(data || [])
       setNewMaterial({ title: '', material_type: 'document', content: '', document_id: '' })
+      setSelectedFile(null)
       setShowMaterialForm(false)
     } catch (err) {
       toast.error('Failed to add material.')
@@ -325,23 +357,80 @@ There are two main types of cells:
                 {/* Add Material Form */}
                 {showMaterialForm && (
                   <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-4 mb-4 border border-green-100">
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <input value={newMaterial.title} onChange={e => setNewMaterial({...newMaterial, title: e.target.value})}
-                        placeholder="Material title"
+                        placeholder="Material title (e.g. 'Chapter Summary PDF')"
                         className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white" />
+                      
+                      {/* Material Type Selector */}
                       <select value={newMaterial.material_type} onChange={e => setNewMaterial({...newMaterial, material_type: e.target.value})}
                         className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white">
-                        <option value="document">📄 Document</option>
-                        <option value="video">🎥 Video</option>
-                        <option value="link">🔗 Link</option>
-                        <option value="text">📝 Text</option>
+                        <option value="document">📄 Document (Upload File)</option>
+                        <option value="video">🎥 Video Link</option>
+                        <option value="link">🔗 External Link</option>
+                        <option value="text">📝 Text Note</option>
                       </select>
-                      <input value={newMaterial.content} onChange={e => setNewMaterial({...newMaterial, content: e.target.value})}
-                        placeholder="URL or description"
-                        className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white" />
-                      <button onClick={handleAddMaterial}
-                        className="w-full px-3 py-2.5 text-xs font-semibold text-white bg-green-500 rounded-lg hover:bg-green-400">
-                        ✓ Add Material
+                      
+                      {/* File Upload Section */}
+                      {newMaterial.material_type === 'document' && (
+                        <div className="bg-white rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-green-400 transition-colors">
+                          {!selectedFile ? (
+                            <label className="cursor-pointer block">
+                              <input 
+                                type="file" 
+                                accept=".pdf,.docx,.pptx"
+                                onChange={(e) => {
+                                  const file = e.target.files[0]
+                                  if (file) {
+                                    if (file.size > 20 * 1024 * 1024) {
+                                      toast.error('File too large. Maximum 20MB.')
+                                      return
+                                    }
+                                    setSelectedFile(file)
+                                    if (!newMaterial.title) {
+                                      setNewMaterial({...newMaterial, title: file.name.replace(/\.[^/.]+$/, '')})
+                                    }
+                                  }
+                                }}
+                                className="hidden" 
+                              />
+                              <Upload size={24} className="mx-auto text-gray-400 mb-2" />
+                              <p className="text-xs font-semibold text-gray-700 mb-1">Click to upload file</p>
+                              <p className="text-[10px] text-gray-400">PDF, DOCX, PPTX (max 20MB)</p>
+                            </label>
+                          ) : (
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1 text-left">
+                                <p className="text-xs font-semibold text-green-700 truncate">{selectedFile.name}</p>
+                                <p className="text-[10px] text-gray-400">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                              </div>
+                              <button 
+                                onClick={() => setSelectedFile(null)}
+                                className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500">
+                                <X size={14} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* URL/Content Input (for non-document types) */}
+                      {newMaterial.material_type !== 'document' && (
+                        <input value={newMaterial.content} onChange={e => setNewMaterial({...newMaterial, content: e.target.value})}
+                          placeholder={newMaterial.material_type === 'link' || newMaterial.material_type === 'video' ? 'https://...' : 'Type your note here...'}
+                          className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white" />
+                      )}
+                      
+                      <button onClick={handleAddMaterial} disabled={uploadingFile}
+                        className="w-full px-3 py-2.5 text-xs font-semibold text-white bg-green-500 rounded-lg hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed">
+                        {uploadingFile ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <Loader2 size={14} className="animate-spin" />
+                            Uploading...
+                          </span>
+                        ) : (
+                          '✓ Add Material'
+                        )}
                       </button>
                     </div>
                   </div>
