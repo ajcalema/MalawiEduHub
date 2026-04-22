@@ -64,14 +64,15 @@ ALTER TABLE topics ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT T
 ALTER TABLE topics ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES users(id);
 ALTER TABLE topics ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
 
--- If there's a 'name' column from old schema, rename it to 'title'
+-- If there's a 'name' column from old schema, handle it
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'topics' AND column_name = 'name') THEN
-    -- Only rename if 'title' doesn't exist yet
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'topics' AND column_name = 'title') THEN
-      ALTER TABLE topics RENAME COLUMN name TO title;
-    END IF;
+    -- Copy data from name to title if title is null
+    UPDATE topics SET title = name WHERE title IS NULL AND name IS NOT NULL;
+    
+    -- Drop the name column (we only need title)
+    ALTER TABLE topics DROP COLUMN name;
   END IF;
 END $$;
 
