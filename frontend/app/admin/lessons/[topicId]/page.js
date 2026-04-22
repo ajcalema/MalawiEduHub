@@ -212,8 +212,8 @@ function LessonEditorContent() {
         const draftKey = `lesson-draft-${topicId}-new`
         localStorage.removeItem(draftKey)
         setIsDraft(false)
-        // Redirect back to manage lessons for this topic
-        setTimeout(() => router.push(`/admin/learning-room?manageTopic=${topicId}`), 1000)
+        // Redirect to edit the newly created lesson
+        setTimeout(() => router.push(`/admin/lessons/${topicId}?lessonId=${data.id}`), 500)
         return
       }
     } catch (err) {
