@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-export default function TopicEditorPage() {
+function TopicEditorContent() {
   const searchParams = useSearchParams()
   const topicId = searchParams.get('topicId')
   const { user } = useAuth()
@@ -265,5 +265,18 @@ export default function TopicEditorPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function TopicEditorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Navbar />
+        <Loader2 size={32} className="text-green-500 animate-spin" />
+      </div>
+    }>
+      <TopicEditorContent />
+    </Suspense>
   )
 }
