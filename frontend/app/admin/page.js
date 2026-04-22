@@ -5,6 +5,7 @@ import Link from 'next/link'
 import api, { adminApi, documentsApi, paymentsApi, subjectsApi } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import toast from 'react-hot-toast'
+import TabLearningRoom from '@/components/learn/AdminLearningRoom'
 import {
   LayoutDashboard, FileText, AlertCircle, CheckCircle2,
   XCircle, Users, BarChart2, Settings, Shield, Eye,
@@ -24,9 +25,9 @@ const NAV = [
   { key: 'documents',  label: 'All documents',  icon: FileText },
   { key: 'duplicates', label: 'Duplicate log',  icon: AlertTriangle },
   { key: 'requests',   label: 'Requests',      icon: Search,        badge: true },
-  { key: 'analytics',  label: 'Analytics',     icon: TrendingUp },
   { key: 'users',      label: 'Users',          icon: Users },
   { key: 'revenue',    label: 'Revenue',        icon: BarChart2 },
+  { key: 'learning',   label: 'Learning Room',  icon: GraduationCap },
   { key: 'settings',   label: 'Settings',       icon: Settings },
 ]
 
@@ -1797,36 +1798,6 @@ const loadData = async (opts = {}) => {
     }
   }
 
-      if (dupRes.status === 'fulfilled') {
-        const logs = dupRes.value.data
-        setDupLogs(Array.isArray(logs) ? logs : [])
-      } else if (!silent) toast.error('Could not load duplicate log.')
-
-      if (requestsRes.status === 'fulfilled') {
-        const reqs = requestsRes.value.data
-        setRequests(Array.isArray(reqs) ? reqs : [])
-      } else if (!silent) toast.error('Could not load requests.')
-
-      if (usersRes.status === 'fulfilled') {
-        const u = usersRes.value.data
-        setUsers(Array.isArray(u) ? u : [])
-      } else if (!silent) toast.error('Could not load users.')
-
-      if (revRes.status === 'fulfilled') setRevenue(revRes.value.data)
-      else if (!silent) toast.error('Could not load revenue.')
-
-      if (settingsRes.status === 'fulfilled') {
-        const s = settingsRes.value.data
-        setSettings(Array.isArray(s) ? s : [])
-      } else if (!silent) toast.error('Could not load settings.')
-    } catch (e) {
-      console.error(e)
-      if (!silent) toast.error('Failed to refresh admin data.')
-    } finally {
-      if (!silent) setLoading(false)
-    }
-  }
-
   const handleApprove = async (id) => {
     try {
       await documentsApi.approve(id)
@@ -1982,6 +1953,7 @@ const loadData = async (opts = {}) => {
           {tab === 'documents'  && <TabDocuments   documents={documents} loading={loading} onUpdate={handleUpdate} onDelete={handleDelete} />}
           {tab === 'duplicates' && <TabDuplicates  logs={dupLogs} loading={loading} />}
           {tab === 'requests'  && <TabRequests   requests={requests} loading={loading} onFulfill={handleFulfillRequest} />}
+          {tab === 'learning'   && <TabLearningRoom />}
           {tab === 'analytics' && (
             <div className="space-y-6">
               {/* Signups chart */}

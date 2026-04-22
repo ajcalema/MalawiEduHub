@@ -69,6 +69,7 @@ export const documentsApi = {
   // Admin
   queue:        ()   => api.get('/documents/admin/queue'),
   duplicateLog: ()   => api.get('/documents/admin/duplicate-log'),
+  allRequests:  ()   => api.get('/documents/admin/requests'),
   approve: (id)      => api.patch(`/documents/admin/${id}/approve`),
   reject:  (id, reason) => api.patch(`/documents/admin/${id}/reject`, { reason }),
   update:  (id, data)   => api.patch(`/documents/admin/${id}`, data),
