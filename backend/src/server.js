@@ -7,6 +7,9 @@ require('dotenv').config();
 
 const app = express();
 
+// Trust proxy headers (required for Render/Heroku behind load balancers)
+app.set('trust proxy', 1);
+
 if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
   console.error('❌ JWT_SECRET and JWT_REFRESH_SECRET must be set');
   process.exit(1);
