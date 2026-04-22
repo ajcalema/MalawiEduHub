@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { learnApi, lessonsApi, subjectsApi, documentsApi } from '@/lib/api'
 import toast from 'react-hot-toast'
 import {
@@ -456,6 +457,7 @@ function ResourceLinker({ topicId, onClose }) {
 
 // ── Main Learning Room admin tab ──────────────
 export default function TabLearningRoom() {
+  const router = useRouter()
   const [classes,    setClasses]    = useState([])
   const [subjects,   setSubjects]   = useState([])
   const [topics,     setTopics]     = useState([])
@@ -531,6 +533,14 @@ export default function TabLearningRoom() {
     loadLessons(topic.id)
     loadQuizzes(topic.id)
     setActiveTab('lessons')
+  }
+  
+  const handleAddLesson = (topicId) => {
+    router.push(`/admin/lessons/${topicId}`)
+  }
+  
+  const handleEditLesson = (topicId, lessonId) => {
+    router.push(`/admin/lessons/${topicId}?lessonId=${lessonId}`)
   }
   
   const handleDeleteLesson = async (id, title) => {
@@ -690,7 +700,7 @@ export default function TabLearningRoom() {
               
               {/* Add lesson button */}
               {!showLessonForm && !editLesson && (
-                <button onClick={() => setShowLessonForm(true)}
+                <button onClick={() => handleAddLesson(manageTopic.id)}
                   className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white
                     bg-blue-500 rounded-xl hover:bg-blue-400 transition-all mb-4">
                   <Plus size={14} /> Add lesson
@@ -724,7 +734,7 @@ export default function TabLearningRoom() {
                       </div>
                       <div className="flex gap-1">
                         <button
-                          onClick={() => { setEditLesson(lesson); setShowLessonForm(false) }}
+                          onClick={() => handleEditLesson(manageTopic.id, lesson.id)}
                           title="Edit lesson"
                           className="p-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
                           <Edit2 size={13} />
