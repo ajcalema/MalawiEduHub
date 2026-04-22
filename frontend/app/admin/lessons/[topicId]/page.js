@@ -40,6 +40,8 @@ function LessonEditorContent() {
   })
   const [uploadingFile, setUploadingFile] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
+  const [allLessons, setAllLessons] = useState([]) // All lessons in this topic for sidebar context
+  const [uploadProgress, setUploadProgress] = useState(0) // File upload progress
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
