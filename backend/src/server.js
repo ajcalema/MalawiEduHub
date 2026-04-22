@@ -57,6 +57,7 @@ const PORT = process.env.PORT || 4000;
 const { initTables } = require('./config/init-tables');
 const { initPerformanceIndexes } = require('./config/init-performance');
 const { initSettings } = require('./config/init-settings');
+const { initLearningRoom } = require('./config/init-learning-room');
 
 app.listen(PORT, async () => {
   console.log(`\n🚀 MalawiEduHub API running on port ${PORT}`);
@@ -70,6 +71,9 @@ app.listen(PORT, async () => {
   
   // Initialize default settings
   await initSettings();
+  
+  // Initialize Learning Room schema (tables, views, seed data)
+  await initLearningRoom();
 });
 
 module.exports = app;
