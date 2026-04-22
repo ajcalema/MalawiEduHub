@@ -1756,11 +1756,6 @@ const loadData = async (opts = {}) => {
       } catch (e) { console.error('stats error:', e) }
 
       try {
-        const analytics = await adminApi.analytics()
-        setAnalytics(analytics.data)
-      } catch (e) { console.error('analytics error:', e) }
-
-      try {
         const queue = await documentsApi.queue()
         setQueue(queue.data || [])
       } catch (e) { console.error('queue error:', e) }

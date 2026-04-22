@@ -90,7 +90,6 @@ export const paymentsApi = {
 // ─── Admin ───────────────────────────────────
 export const adminApi = {
   stats:         ()    => api.get('/admin/stats'),
-  analytics:    ()    => api.get('/admin/analytics'),
   users:         ()    => api.get('/admin/users'),
   suspendUser:   (id)  => api.patch(`/admin/users/${id}/suspend`),
   settings:      ()    => api.get('/admin/settings'),
