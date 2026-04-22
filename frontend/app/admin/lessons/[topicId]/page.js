@@ -7,7 +7,7 @@ import { lessonsApi, documentsApi } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import {
   ArrowLeft, Save, BookOpen, FileText, Video, ListChecks,
-  Loader2, Trash2, Upload, X
+  Loader2, Upload, X
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -96,8 +96,8 @@ function LessonEditorContent() {
       } else {
         const { data } = await lessonsApi.adminCreateLesson(form)
         toast.success('Lesson created successfully!')
-        // Redirect to edit mode for the new lesson
-        setTimeout(() => router.push(`/admin/lessons/${topicId}?lessonId=${data.id}`), 1000)
+        // Redirect to manage lessons for this topic
+        setTimeout(() => router.push('/admin'), 1500)
         return
       }
     } catch (err) {
@@ -170,18 +170,6 @@ function LessonEditorContent() {
       setMaterials(data || [])
     } catch {
       toast.error('Failed to delete material.')
-    }
-  }
-
-  const handleDeleteLesson = async () => {
-    if (!lessonId) return
-    if (!confirm('Are you sure you want to delete this lesson? This cannot be undone.')) return
-    try {
-      await lessonsApi.adminDeleteLesson(lessonId)
-      toast.success('Lesson deleted.')
-      router.push('/admin')
-    } catch {
-      toast.error('Failed to delete lesson.')
     }
   }
 
@@ -314,17 +302,8 @@ There are two main types of cells:
                   className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white 
                     bg-blue-500 rounded-xl hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                   {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                  {lessonId ? 'Save Changes' : 'Create Lesson'}
+                  {lessonId ? 'Update Lesson' : 'Create Lesson'}
                 </button>
-                
-                {lessonId && (
-                  <button onClick={handleDeleteLesson}
-                    className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-red-600 
-                      bg-red-50 rounded-xl hover:bg-red-100 transition-all border border-red-100">
-                    <Trash2 size={16} />
-                    Delete Lesson
-                  </button>
-                )}
               </div>
             </div>
 
