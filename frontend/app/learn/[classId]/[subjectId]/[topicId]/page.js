@@ -4,12 +4,13 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import AccessModal from '@/components/documents/AccessModal'
-import { learnApi, documentsApi } from '@/lib/api'
+import { learnApi, lessonsApi, documentsApi } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import {
   ChevronLeft, ChevronRight, CheckCircle2, Download,
   FileText, BookOpen, BookMarked, ClipboardList,
-  GraduationCap, Loader2, Eye, ArrowRight
+  GraduationCap, Loader2, Eye, ArrowRight, Play, Layers,
+  HelpCircle, ListChecks
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -51,19 +52,26 @@ export default function LearningRoomPage() {
 
   const [data,      setData]      = useState(null)   // { topic, resources }
   const [allTopics, setAllTopics] = useState([])
+  const [lessons,   setLessons]   = useState([])
+  const [quizzes,   setQuizzes]   = useState([])
   const [completed, setCompleted] = useState(false)
   const [loading,   setLoading]   = useState(true)
   const [marking,   setMarking]   = useState(false)
   const [accessDoc, setAccessDoc] = useState(null)
+  const [activeTab, setActiveTab] = useState('resources') // 'resources', 'lessons', 'quizzes'
 
   useEffect(() => {
     if (user === null) { router.push('/auth/login'); return }
     Promise.all([
       learnApi.getResources(topicId),
       learnApi.getTopics(classId, subjectId),
-    ]).then(([res, topics]) => {
+      lessonsApi.getLessons(topicId).catch(() => ({ data: [] })),
+      lessonsApi.getQuizzes(topicId).catch(() => ({ data: [] })),
+    ]).then(([res, topics, lessonsRes, quizzesRes]) => {
       setData(res.data)
       setAllTopics(topics.data)
+      setLessons(lessonsRes.data || [])
+      setQuizzes(quizzesRes.data || [])
       const thisTopic = topics.data.find(t => String(t.id) === String(topicId))
       if (thisTopic) setCompleted(!!thisTopic.completed)
     }).catch(() => toast.error('Failed to load topic.'))
@@ -193,7 +201,46 @@ export default function LearningRoomPage() {
           )}
         </div>
 
-        {/* Resources */}
+        {/* Tabs */}
+        {(lessons.length > 0 || quizzes.length > 0) && (
+          <div className="flex gap-2 mb-6 border-b border-gray-100">
+            <button onClick={() => setActiveTab('resources')}
+              className={`px-4 py-2 text-xs font-semibold rounded-t-lg transition-colors ${
+                activeTab === 'resources' 
+                  ? 'bg-green-50 text-green-700 border-b-2 border-green-600' 
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}>
+              <FileText size={13} className="inline mr-1" />
+              Resources
+            </button>
+            {lessons.length > 0 && (
+              <button onClick={() => setActiveTab('lessons')}
+                className={`px-4 py-2 text-xs font-semibold rounded-t-lg transition-colors ${
+                  activeTab === 'lessons' 
+                    ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}>
+                <BookOpen size={13} className="inline mr-1" />
+                Lessons ({lessons.length})
+              </button>
+            )}
+            {quizzes.length > 0 && (
+              <button onClick={() => setActiveTab('quizzes')}
+                className={`px-4 py-2 text-xs font-semibold rounded-t-lg transition-colors ${
+                  activeTab === 'quizzes' 
+                    ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-600' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}>
+                <HelpCircle size={13} className="inline mr-1" />
+                Quizzes ({quizzes.length})
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Resources Tab */}
+        {activeTab === 'resources' && (
+          <div>
         {resources.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center mb-6">
             <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
@@ -263,6 +310,70 @@ export default function LearningRoomPage() {
                 </div>
               )
             })}
+          </div>
+        )}
+        </div>
+        )}
+
+        {/* Lessons Tab */}
+        {activeTab === 'lessons' && lessons.length > 0 && (
+          <div className="space-y-4 mb-6">
+            {lessons.map((lesson, idx) => (
+              <div key={lesson.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-3">
+                  <div className="w-9 h-10 bg-blue-50 rounded-lg border border-blue-100 flex items-center justify-center flex-shrink-0">
+                    <BookOpen size={15} className="text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-sm font-semibold text-gray-800">{lesson.title}</h2>
+                    {lesson.duration_minutes && (
+                      <p className="text-xs text-gray-400 mt-0.5">{lesson.duration_minutes} minutes</p>
+                    )}
+                  </div>
+                </div>
+                <div className="p-5">
+                  {lesson.content_html ? (
+                    <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: lesson.content_html }} />
+                  ) : (
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{lesson.content}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Quizzes Tab */}
+        {activeTab === 'quizzes' && quizzes.length > 0 && (
+          <div className="space-y-3 mb-6">
+            {quizzes.map((quiz) => (
+              <div key={quiz.id} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:border-purple-200 transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-purple-50 rounded-lg border border-purple-100 flex items-center justify-center flex-shrink-0">
+                    <HelpCircle size={18} className="text-purple-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-gray-800 mb-1">{quiz.title}</h3>
+                    {quiz.description && (
+                      <p className="text-xs text-gray-500 mb-2">{quiz.description}</p>
+                    )}
+                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <ListChecks size={11} />
+                        {quiz.question_count} questions
+                      </span>
+                      <span>Pass: {quiz.passing_score}%</span>
+                      {quiz.time_limit_minutes && (
+                        <span>{quiz.time_limit_minutes} min</span>
+                      )}
+                    </div>
+                  </div>
+                  <button className="px-4 py-2 text-xs font-semibold text-white bg-purple-500 rounded-xl hover:bg-purple-400 transition-all">
+                    Start Quiz
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

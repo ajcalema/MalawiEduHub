@@ -117,3 +117,43 @@ export const learnApi = {
   adminAddSubject:     (classId, subjectId)         => api.post(`/learn/admin/classes/${classId}/subjects`, { subject_id: subjectId }),
   adminRemoveSubject:  (classId, subjectId)         => api.delete(`/learn/admin/classes/${classId}/subjects/${subjectId}`),
 }
+
+// ─── Lessons & Quizzes API ─────────────────────
+export const lessonsApi = {
+  // Admin - Lessons
+  adminGetLessons:     (topicId)                    => api.get(`/lessons/admin/topics/${topicId}/lessons`),
+  adminCreateLesson:   (data)                       => api.post('/lessons/admin/lessons', data),
+  adminUpdateLesson:   (id, data)                   => api.put(`/lessons/admin/lessons/${id}`, data),
+  adminDeleteLesson:   (id)                         => api.delete(`/lessons/admin/lessons/${id}`),
+  
+  // Admin - Materials
+  adminGetMaterials:   (lessonId)                   => api.get(`/lessons/admin/lessons/${lessonId}/materials`),
+  adminCreateMaterial: (lessonId, data)             => api.post(`/lessons/admin/lessons/${lessonId}/materials`, data),
+  adminUpdateMaterial: (lessonId, materialId, data) => api.put(`/lessons/admin/lessons/${lessonId}/materials/${materialId}`, data),
+  adminDeleteMaterial: (lessonId, materialId)       => api.delete(`/lessons/admin/lessons/${lessonId}/materials/${materialId}`),
+  
+  // Admin - Quizzes
+  adminGetQuizzes:     (topicId)                    => api.get(`/lessons/admin/topics/${topicId}/quizzes`),
+  adminCreateQuiz:     (data)                       => api.post('/lessons/admin/quizzes', data),
+  adminUpdateQuiz:     (id, data)                   => api.put(`/lessons/admin/quizzes/${id}`, data),
+  adminDeleteQuiz:     (id)                         => api.delete(`/lessons/admin/quizzes/${id}`),
+  
+  // Admin - Questions
+  adminCreateQuestion: (quizId, data)               => api.post(`/lessons/admin/quizzes/${quizId}/questions`, data),
+  adminUpdateQuestion: (quizId, questionId, data)   => api.put(`/lessons/admin/quizzes/${quizId}/questions/${questionId}`, data),
+  adminDeleteQuestion: (quizId, questionId)         => api.delete(`/lessons/admin/quizzes/${quizId}/questions/${questionId}`),
+  
+  // Admin - Answers
+  adminCreateAnswer:   (questionId, data)           => api.post(`/lessons/admin/questions/${questionId}/answers`, data),
+  adminUpdateAnswer:   (questionId, answerId, data) => api.put(`/lessons/admin/questions/${questionId}/answers/${answerId}`, data),
+  adminDeleteAnswer:   (questionId, answerId)       => api.delete(`/lessons/admin/questions/${questionId}/answers/${answerId}`),
+  
+  // Student - Lessons
+  getLessons:          (topicId)                    => api.get(`/lessons/topics/${topicId}/lessons`),
+  getLesson:           (lessonId)                   => api.get(`/lessons/lessons/${lessonId}`),
+  
+  // Student - Quizzes
+  getQuizzes:          (topicId)                    => api.get(`/lessons/topics/${topicId}/quizzes`),
+  getQuiz:             (quizId)                     => api.get(`/lessons/quizzes/${quizId}`),
+  submitQuiz:          (quizId, data)               => api.post(`/lessons/quizzes/${quizId}/attempt`, data),
+}

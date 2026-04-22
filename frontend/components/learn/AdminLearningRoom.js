@@ -1,11 +1,12 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { learnApi, subjectsApi, documentsApi } from '@/lib/api'
+import { learnApi, lessonsApi, subjectsApi, documentsApi } from '@/lib/api'
 import toast from 'react-hot-toast'
 import {
-  Plus, Trash2, Edit2, Save, X, ChevronDown,
+  Plus, Trash2, Edit2, Save, X, ChevronDown, ChevronUp,
   BookOpen, GraduationCap, Loader2, Search,
-  Link as LinkIcon, CheckCircle2
+  Link as LinkIcon, CheckCircle2, FileText, Video, HelpCircle,
+  Layers, ListChecks
 } from 'lucide-react'
 
 // ── Small reusable pieces ─────────────────────
@@ -103,6 +104,205 @@ function TopicForm({ classes, subjects, initial, onSave, onCancel }) {
           className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-green-500 rounded-xl hover:bg-green-400 disabled:opacity-50">
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           {initial?.id ? 'Save changes' : 'Create topic'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Lesson form (create / edit) ────────────────
+function LessonForm({ topicId, initial, onSave, onCancel }) {
+  const [form, setForm] = useState(
+    initial || { topic_id: topicId, title: '', content: '', content_html: '', video_url: '', sort_order: 0, duration_minutes: null }
+  )
+  const [saving, setSaving] = useState(false)
+  const [materials, setMaterials] = useState([])
+  const [showMaterialForm, setShowMaterialForm] = useState(false)
+  const [newMaterial, setNewMaterial] = useState({ title: '', material_type: 'document', content: '', document_id: '' })
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  useEffect(() => {
+    if (initial?.id) {
+      lessonsApi.adminGetMaterials(initial.id)
+        .then(r => setMaterials(r.data || []))
+        .catch(() => {})
+    }
+  }, [initial?.id])
+
+  const handleSave = async () => {
+    if (!form.title.trim()) {
+      toast.error('Lesson title is required.')
+      return
+    }
+    setSaving(true)
+    try {
+      if (initial?.id) {
+        await lessonsApi.adminUpdateLesson(initial.id, form)
+        toast.success('Lesson updated.')
+      } else {
+        const { data } = await lessonsApi.adminCreateLesson(form)
+        toast.success('Lesson created.')
+        // If this is a new lesson, redirect to editing it
+        if (onSave && onSave.redirect) {
+          onSave.redirect(data.id)
+          return
+        }
+      }
+      onSave()
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'Failed to save lesson.')
+    } finally { setSaving(false) }
+  }
+
+  const handleAddMaterial = async () => {
+    if (!newMaterial.title.trim()) {
+      toast.error('Material title is required.')
+      return
+    }
+    if (!initial?.id) {
+      toast.error('Please save the lesson first before adding materials.')
+      return
+    }
+    try {
+      await lessonsApi.adminCreateMaterial(initial.id, {
+        ...newMaterial,
+        document_id: newMaterial.document_id || null
+      })
+      toast.success('Material added.')
+      const { data } = await lessonsApi.adminGetMaterials(initial.id)
+      setMaterials(data || [])
+      setNewMaterial({ title: '', material_type: 'document', content: '', document_id: '' })
+      setShowMaterialForm(false)
+    } catch (err) {
+      toast.error('Failed to add material.')
+    }
+  }
+
+  const handleDeleteMaterial = async (materialId) => {
+    if (!confirm('Delete this material?')) return
+    try {
+      await lessonsApi.adminDeleteMaterial(initial.id, materialId)
+      toast.success('Material deleted.')
+      const { data } = await lessonsApi.adminGetMaterials(initial.id)
+      setMaterials(data || [])
+    } catch {
+      toast.error('Failed to delete material.')
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+      <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <BookOpen size={15} className="text-blue-600" />
+        {initial?.id ? 'Edit lesson' : 'Create new lesson'}
+      </h3>
+      <div className="mb-3">
+        <label className="text-xs font-semibold text-green-700 uppercase tracking-wider block mb-1">Lesson title *</label>
+        <input value={form.title} onChange={e => set('title', e.target.value)}
+          placeholder="e.g. Introduction to Cells"
+          className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400" />
+      </div>
+      <div className="mb-3">
+        <label className="text-xs font-semibold text-green-700 uppercase tracking-wider block mb-1">Content (plain text)</label>
+        <textarea value={form.content || ''} onChange={e => set('content', e.target.value)}
+          placeholder="Lesson content..."
+          rows={4}
+          className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400" />
+      </div>
+      <div className="mb-3">
+        <label className="text-xs font-semibold text-green-700 uppercase tracking-wider block mb-1">Content (HTML - optional)</label>
+        <textarea value={form.content_html || ''} onChange={e => set('content_html', e.target.value)}
+          placeholder="<p>Formatted content with HTML tags</p>"
+          rows={4}
+          className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400 font-mono" />
+      </div>
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        <div className="col-span-2">
+          <label className="text-xs font-semibold text-green-700 uppercase tracking-wider block mb-1">Video URL (optional)</label>
+          <input value={form.video_url || ''} onChange={e => set('video_url', e.target.value)}
+            placeholder="https://youtube.com/watch?v=..."
+            className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400" />
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-green-700 uppercase tracking-wider block mb-1">Duration (min)</label>
+          <input type="number" value={form.duration_minutes || ''} onChange={e => set('duration_minutes', e.target.value ? parseInt(e.target.value) : null)}
+            placeholder="30"
+            className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400 text-center" />
+        </div>
+      </div>
+      <div className="mb-4">
+        <label className="text-xs font-semibold text-green-700 uppercase tracking-wider block mb-1">Order</label>
+        <input type="number" value={form.sort_order} onChange={e => set('sort_order', parseInt(e.target.value) || 0)}
+          className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400 text-center" />
+      </div>
+      
+      {/* Materials Section (only for existing lessons) */}
+      {initial?.id && (
+        <div className="border-t border-gray-100 pt-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+              <FileText size={13} className="text-green-600" />
+              Lesson Materials ({materials.length})
+            </h4>
+            <button onClick={() => setShowMaterialForm(!showMaterialForm)}
+              className="text-xs font-semibold text-blue-600 hover:text-blue-700">
+              {showMaterialForm ? 'Cancel' : '+ Add Material'}
+            </button>
+          </div>
+          
+          {showMaterialForm && (
+            <div className="bg-gray-50 rounded-xl p-3 mb-3 space-y-2">
+              <input value={newMaterial.title} onChange={e => setNewMaterial({...newMaterial, title: e.target.value})}
+                placeholder="Material title"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white" />
+              <select value={newMaterial.material_type} onChange={e => setNewMaterial({...newMaterial, material_type: e.target.value})}
+                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white">
+                <option value="document">Document</option>
+                <option value="video">Video</option>
+                <option value="audio">Audio</option>
+                <option value="link">Link</option>
+                <option value="text">Text</option>
+              </select>
+              <input value={newMaterial.content} onChange={e => setNewMaterial({...newMaterial, content: e.target.value})}
+                placeholder={newMaterial.material_type === 'link' ? 'https://...' : 'Content or URL'}
+                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white" />
+              <button onClick={handleAddMaterial}
+                className="px-3 py-2 text-xs font-semibold text-white bg-green-500 rounded-lg hover:bg-green-400">
+                Add Material
+              </button>
+            </div>
+          )}
+          
+          {materials.length > 0 && (
+            <div className="space-y-1.5">
+              {materials.map(mat => (
+                <div key={mat.id} className="flex items-center gap-2 p-2 bg-white border border-gray-100 rounded-lg">
+                  <FileText size={12} className="text-gray-400 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-700 truncate">{mat.title}</p>
+                    <p className="text-[10px] text-gray-400 capitalize">{mat.material_type}</p>
+                  </div>
+                  <button onClick={() => handleDeleteMaterial(mat.id)}
+                    className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500">
+                    <Trash2 size={11} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      
+      <div className="flex gap-2 justify-end">
+        <button onClick={onCancel}
+          className="px-4 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">
+          Cancel
+        </button>
+        <button onClick={handleSave} disabled={saving}
+          className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-500 rounded-xl hover:bg-blue-400 disabled:opacity-50">
+          {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+          {initial?.id ? 'Save changes' : 'Create lesson'}
         </button>
       </div>
     </div>
@@ -234,6 +434,16 @@ export default function TabLearningRoom() {
   const [linkTopic,  setLinkTopic]  = useState(null)
   const [filterClass,setFilterClass] = useState('')
   const [filterSubj, setFilterSubj]  = useState('')
+  
+  // Lesson & Quiz management
+  const [manageTopic, setManageTopic] = useState(null) // Topic being managed for lessons/quizzes
+  const [lessons, setLessons] = useState([])
+  const [showLessonForm, setShowLessonForm] = useState(false)
+  const [editLesson, setEditLesson] = useState(null)
+  const [quizzes, setQuizzes] = useState([])
+  const [showQuizForm, setShowQuizForm] = useState(false)
+  const [editQuiz, setEditQuiz] = useState(null)
+  const [activeTab, setActiveTab] = useState('lessons') // 'lessons' or 'quizzes'
 
   const loadAll = async () => {
     setLoading(true)
@@ -265,6 +475,49 @@ export default function TabLearningRoom() {
       toast.success('Topic deleted.')
       loadAll()
     } catch { toast.error('Failed to delete.') }
+  }
+  
+  const loadLessons = async (topicId) => {
+    try {
+      const { data } = await lessonsApi.adminGetLessons(topicId)
+      setLessons(data || [])
+    } catch (err) {
+      console.error('Failed to load lessons:', err)
+    }
+  }
+  
+  const loadQuizzes = async (topicId) => {
+    try {
+      const { data } = await lessonsApi.adminGetQuizzes(topicId)
+      setQuizzes(data || [])
+    } catch (err) {
+      console.error('Failed to load quizzes:', err)
+    }
+  }
+  
+  const handleOpenManageTopic = (topic) => {
+    setManageTopic(topic)
+    loadLessons(topic.id)
+    loadQuizzes(topic.id)
+    setActiveTab('lessons')
+  }
+  
+  const handleDeleteLesson = async (id, title) => {
+    if (!confirm(`Delete lesson "${title}"?`)) return
+    try {
+      await lessonsApi.adminDeleteLesson(id)
+      toast.success('Lesson deleted.')
+      loadLessons(manageTopic.id)
+    } catch { toast.error('Failed to delete lesson.') }
+  }
+  
+  const handleDeleteQuiz = async (id, title) => {
+    if (!confirm(`Delete quiz "${title}"?`)) return
+    try {
+      await lessonsApi.adminDeleteQuiz(id)
+      toast.success('Quiz deleted.')
+      loadQuizzes(manageTopic.id)
+    } catch { toast.error('Failed to delete quiz.') }
   }
 
   const CLASS_COLORS = ['#E6F1FB','#E1F5EE','#FAEEDA','#EEEDFE']
@@ -341,6 +594,197 @@ export default function TabLearningRoom() {
           onClose={() => setLinkTopic(null)}
         />
       )}
+      
+      {/* Lesson & Quiz management for a topic */}
+      {manageTopic && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <Layers size={15} className="text-blue-600" />
+                Manage topic: <span className="text-green-700">{manageTopic.title}</span>
+              </h3>
+              <p className="text-xs text-gray-400 mt-1">{lessons.length} lesson(s) · {quizzes.length} quiz(zes)</p>
+            </div>
+            <button onClick={() => { setManageTopic(null); setShowLessonForm(false); setEditLesson(null); setShowQuizForm(false); setEditQuiz(null) }} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+              <X size={15} />
+            </button>
+          </div>
+          
+          {/* Tabs */}
+          <div className="flex gap-2 mb-4 border-b border-gray-100">
+            <button onClick={() => setActiveTab('lessons')}
+              className={`px-4 py-2 text-xs font-semibold rounded-t-lg transition-colors ${
+                activeTab === 'lessons' 
+                  ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600' 
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}>
+              <BookOpen size={13} className="inline mr-1" />
+              Lessons
+            </button>
+            <button onClick={() => setActiveTab('quizzes')}
+              className={`px-4 py-2 text-xs font-semibold rounded-t-lg transition-colors ${
+                activeTab === 'quizzes' 
+                  ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-600' 
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}>
+              <HelpCircle size={13} className="inline mr-1" />
+              Quizzes
+            </button>
+          </div>
+          
+          {/* Lessons Tab */}
+          {activeTab === 'lessons' && (
+            <div>
+              {/* Lesson form */}
+              {(showLessonForm || editLesson) && (
+                <div className="mb-4">
+                  <LessonForm
+                    topicId={manageTopic.id}
+                    initial={editLesson}
+                    onSave={(lessonId) => { 
+                      setShowLessonForm(false); 
+                      setEditLesson(null); 
+                      loadLessons(manageTopic.id);
+                      // If a new lesson was created, edit it
+                      if (lessonId) {
+                        const newLesson = lessons.find(l => l.id === lessonId)
+                        if (newLesson) setEditLesson(newLesson)
+                      }
+                    }}
+                    onCancel={() => { setShowLessonForm(false); setEditLesson(null) }}
+                  />
+                </div>
+              )}
+              
+              {/* Add lesson button */}
+              {!showLessonForm && !editLesson && (
+                <button onClick={() => setShowLessonForm(true)}
+                  className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white
+                    bg-blue-500 rounded-xl hover:bg-blue-400 transition-all mb-4">
+                  <Plus size={14} /> Add lesson
+                </button>
+              )}
+              
+              {/* Lessons list */}
+              {lessons.length === 0 ? (
+                <div className="text-center py-8 bg-gray-50 rounded-xl">
+                  <BookOpen size={32} className="text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">No lessons yet</p>
+                  <p className="text-xs text-gray-400">Click "Add lesson" to create the first lesson.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {lessons.map((lesson) => (
+                    <div key={lesson.id} className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-100 rounded-xl hover:bg-gray-100 transition-colors">
+                      <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0">
+                        <BookOpen size={14} className="text-blue-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">{lesson.title}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {lesson.duration_minutes && (
+                            <span className="text-[10px] text-gray-400">{lesson.duration_minutes} min</span>
+                          )}
+                          {lesson.material_count > 0 && (
+                            <span className="text-[10px] text-green-600 font-semibold">{lesson.material_count} material(s)</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => { setEditLesson(lesson); setShowLessonForm(false) }}
+                          title="Edit lesson"
+                          className="p-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+                          <Edit2 size={13} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteLesson(lesson.id, lesson.title)}
+                          title="Delete lesson"
+                          className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors border border-red-100">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Quizzes Tab */}
+          {activeTab === 'quizzes' && (
+            <div>
+              {/* Quiz form placeholder */}
+              {(showQuizForm || editQuiz) && (
+                <div className="mb-4 p-6 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                  <HelpCircle size={32} className="text-purple-300 mx-auto mb-2" />
+                  <p className="text-sm font-semibold text-gray-700 mb-1">Quiz Builder</p>
+                  <p className="text-xs text-gray-500 mb-3">Create quizzes with questions and multiple-choice answers</p>
+                  <button onClick={() => { setShowQuizForm(false); setEditQuiz(null) }}
+                    className="px-3 py-1.5 text-xs font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-100">
+                    Close
+                  </button>
+                </div>
+              )}
+              
+              {/* Add quiz button */}
+              {!showQuizForm && !editQuiz && (
+                <button onClick={() => setShowQuizForm(true)}
+                  className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white
+                    bg-purple-500 rounded-xl hover:bg-purple-400 transition-all mb-4">
+                  <Plus size={14} /> Add quiz
+                </button>
+              )}
+              
+              {/* Quizzes list */}
+              {quizzes.length === 0 ? (
+                <div className="text-center py-8 bg-gray-50 rounded-xl">
+                  <HelpCircle size={32} className="text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">No quizzes yet</p>
+                  <p className="text-xs text-gray-400">Click "Add quiz" to create the first quiz.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {quizzes.map((quiz) => (
+                    <div key={quiz.id} className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-100 rounded-xl hover:bg-gray-100 transition-colors">
+                      <div className="w-8 h-8 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center flex-shrink-0">
+                        <HelpCircle size={14} className="text-purple-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">{quiz.title}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {quiz.question_count > 0 && (
+                            <span className="text-[10px] text-purple-600 font-semibold">{quiz.question_count} question(s)</span>
+                          )}
+                          <span className="text-[10px] text-gray-400">Pass: {quiz.passing_score}%</span>
+                          {quiz.time_limit_minutes && (
+                            <span className="text-[10px] text-gray-400">{quiz.time_limit_minutes} min</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => { setEditQuiz(quiz); setShowQuizForm(false) }}
+                          title="Edit quiz"
+                          className="p-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+                          <Edit2 size={13} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteQuiz(quiz.id, quiz.title)}
+                          title="Delete quiz"
+                          className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors border border-red-100">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Topics table */}
       {loading ? (
@@ -391,6 +835,12 @@ export default function TabLearningRoom() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
+                      <button
+                        onClick={() => handleOpenManageTopic(topic)}
+                        title="Manage lessons"
+                        className="p-1.5 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors border border-purple-100">
+                        <Layers size={13} />
+                      </button>
                       <button
                         onClick={() => { setLinkTopic(topic); setShowForm(false); setEditTopic(null) }}
                         title="Manage resources"

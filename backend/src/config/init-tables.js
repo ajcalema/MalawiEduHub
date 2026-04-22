@@ -32,25 +32,37 @@ const initTables = async () => {
         throw err
       }
       
-      // Update existing classes with missing fields (after schema is applied)
-      await pool.query(`
-        UPDATE classes SET 
-          slug = LOWER(REPLACE(name, ' ', '-')),
-          display_name = COALESCE(display_name, name),
-          level_type = COALESCE(level_type, CASE 
-            WHEN name IN ('Form 1', 'Form 2') THEN 'jce'
-            WHEN name IN ('Form 3', 'Form 4') THEN 'msce'
-            ELSE 'other'
-          END)
-        WHERE slug IS NULL OR display_name IS NULL OR level_type IS NULL;
-      `)
-      
       console.log('✅ Learning schema applied successfully')
     } else {
       console.log('⚠️ schema_learning.sql not found, using fallback')
       
       // Fallback: Create tables with code
       await createLearningTables()
+    }
+
+    // Run schema_lessons.sql to create lessons, materials, and quizzes tables
+    const lessonsSchemaCandidates = [
+      path.join(__dirname, '../../database/schema_lessons.sql'),
+      path.join(__dirname, '../../../database/schema_lessons.sql'),
+    ]
+    const lessonsSchemaPath = lessonsSchemaCandidates.find(p => fs.existsSync(p))
+    
+    if (lessonsSchemaPath) {
+      console.log('📄 Running schema_lessons.sql...')
+      const sql = fs.readFileSync(lessonsSchemaPath, 'utf8')
+      
+      try {
+        await pool.query(sql)
+        console.log('✅ Lessons schema SQL executed successfully')
+      } catch (err) {
+        console.error('❌ Lessons schema SQL execution failed:', err.message)
+        console.error('Error detail:', err.detail)
+        console.error('Error position:', err.position)
+      }
+      
+      console.log('✅ Lessons schema applied successfully')
+    } else {
+      console.log('⚠️ schema_lessons.sql not found, skipping')
     }
 
     console.log('✅ Database tables check complete\n')
