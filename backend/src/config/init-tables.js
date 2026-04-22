@@ -22,7 +22,15 @@ const initTables = async () => {
       console.log('📄 Running schema_learning.sql...')
       const sql = fs.readFileSync(schemaPath, 'utf8')
       
-      await pool.query(sql)
+      try {
+        await pool.query(sql)
+        console.log('✅ Schema SQL executed successfully')
+      } catch (err) {
+        console.error('❌ Schema SQL execution failed:', err.message)
+        console.error('Error detail:', err.detail)
+        console.error('Error position:', err.position)
+        throw err
+      }
       
       // Update existing classes with missing fields (after schema is applied)
       await pool.query(`

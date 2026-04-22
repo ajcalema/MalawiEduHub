@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS class_subjects (
   UNIQUE (class_id, subject_id)
 );
 
--- Create topics if not exists
+-- Create topics if not exists (with proper structure)
 CREATE TABLE IF NOT EXISTS topics (
   id          SERIAL PRIMARY KEY,
   class_id    INTEGER NOT NULL REFERENCES classes(id)  ON DELETE CASCADE,
@@ -55,6 +55,31 @@ CREATE TABLE IF NOT EXISTS topics (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Ensure topics table has the correct columns (in case it was created differently before)
+ALTER TABLE topics ADD COLUMN IF NOT EXISTS title VARCHAR(200);
+ALTER TABLE topics ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE topics ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE topics ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE topics ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES users(id);
+ALTER TABLE topics ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+
+-- If there's a 'name' column from old schema, rename it to 'title'
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'topics' AND column_name = 'name') THEN
+    -- Only rename if 'title' doesn't exist yet
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'topics' AND column_name = 'title') THEN
+      ALTER TABLE topics RENAME COLUMN name TO title;
+    END IF;
+  END IF;
+END $$;
+
+-- Update any NULL titles to have a default value
+UPDATE topics SET title = 'Untitled Topic' WHERE title IS NULL OR title = '';
+
+-- Make title NOT NULL after ensuring all rows have values
+ALTER TABLE topics ALTER COLUMN title SET NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_topics_class_subject ON topics (class_id, subject_id);
 
