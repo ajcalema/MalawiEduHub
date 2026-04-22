@@ -7,7 +7,7 @@ import { lessonsApi, documentsApi } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import {
   ArrowLeft, Save, BookOpen, FileText, Video, ListChecks,
-  Loader2, Upload, X, ChevronDown, Layers, Eye, Copy
+  Loader2, Upload, X, ChevronDown, Layers, Eye, Copy, Trash2
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
