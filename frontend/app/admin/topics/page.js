@@ -81,12 +81,14 @@ function TopicEditorContent() {
       if (topicId) {
         await learnApi.adminUpdateTopic(topicId, form)
         toast.success('Topic updated successfully!')
+        // Stay on edit page after update
       } else {
-        await learnApi.adminCreateTopic(form)
+        const { data } = await learnApi.adminCreateTopic(form)
         toast.success('Topic created successfully!')
+        // Redirect to lesson editor for the new topic
+        setTimeout(() => router.push(`/admin/lessons/${data.id}`), 1000)
+        return
       }
-      // Go back to learning room
-      setTimeout(() => router.push('/admin'), 1000)
     } catch (err) {
       toast.error(err?.response?.data?.error || 'Failed to save topic.')
     } finally {
