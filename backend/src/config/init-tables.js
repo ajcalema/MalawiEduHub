@@ -20,25 +20,23 @@ const initTables = async () => {
     
     if (schemaPath) {
       console.log('📄 Running schema_learning.sql...')
-      let sql = fs.readFileSync(schemaPath, 'utf8')
-      
-      // Remove the INSERT statements for classes to avoid duplicate key errors
-      // Classes already exist with unique constraint on name
-      sql = sql.replace(
-        /-- Insert classes[\s\S]*?ON CONFLICT \(slug\) DO UPDATE SET[\s\S]*?level_type = EXCLUDED\.level_type;/,
-        `-- Classes already exist, updating missing fields only
-         UPDATE classes SET 
-           slug = LOWER(REPLACE(name, ' ', '-')),
-           display_name = COALESCE(display_name, name),
-           level_type = COALESCE(level_type, CASE 
-             WHEN name IN ('Form 1', 'Form 2') THEN 'jce'
-             WHEN name IN ('Form 3', 'Form 4') THEN 'msce'
-             ELSE 'other'
-           END)
-         WHERE slug IS NULL OR display_name IS NULL OR level_type IS NULL;`
-      )
+      const sql = fs.readFileSync(schemaPath, 'utf8')
       
       await pool.query(sql)
+      
+      // Update existing classes with missing fields (after schema is applied)
+      await pool.query(`
+        UPDATE classes SET 
+          slug = LOWER(REPLACE(name, ' ', '-')),
+          display_name = COALESCE(display_name, name),
+          level_type = COALESCE(level_type, CASE 
+            WHEN name IN ('Form 1', 'Form 2') THEN 'jce'
+            WHEN name IN ('Form 3', 'Form 4') THEN 'msce'
+            ELSE 'other'
+          END)
+        WHERE slug IS NULL OR display_name IS NULL OR level_type IS NULL;
+      `)
+      
       console.log('✅ Learning schema applied successfully')
     } else {
       console.log('⚠️ schema_learning.sql not found, using fallback')

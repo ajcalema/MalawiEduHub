@@ -20,16 +20,17 @@ EXCEPTION WHEN duplicate_table THEN
   -- ignore
 END $$;
 
--- Insert classes (works even if table already exists)
-INSERT INTO classes (name, slug, sort_order, display_name, level_type)
-VALUES
-  ('Form 1', 'form-1', 1, 'Form 1', 'jce'),
-  ('Form 2', 'form-2', 2, 'Form 2', 'jce'),
-  ('Form 3', 'form-3', 3, 'Form 3', 'msce'),
-  ('Form 4', 'form-4', 4, 'Form 4', 'msce')
-ON CONFLICT (slug) DO UPDATE SET
-  display_name = EXCLUDED.display_name,
-  level_type = EXCLUDED.level_type;
+-- Insert classes (handled by init-tables.js to avoid duplicate key errors)
+-- This section is commented out to prevent conflicts during migration
+-- INSERT INTO classes (name, slug, sort_order, display_name, level_type)
+-- VALUES
+--   ('Form 1', 'form-1', 1, 'Form 1', 'jce'),
+--   ('Form 2', 'form-2', 2, 'Form 2', 'jce'),
+--   ('Form 3', 'form-3', 3, 'Form 3', 'msce'),
+--   ('Form 4', 'form-4', 4, 'Form 4', 'msce')
+-- ON CONFLICT (slug) DO UPDATE SET
+--   display_name = EXCLUDED.display_name,
+--   level_type = EXCLUDED.level_type;
 
 -- Create class_subjects if not exists
 CREATE TABLE IF NOT EXISTS class_subjects (
