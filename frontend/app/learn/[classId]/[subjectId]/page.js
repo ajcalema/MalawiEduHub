@@ -49,8 +49,8 @@ export default function TopicsPage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-24 pb-16">
         {/* Back button + Breadcrumb */}
         <div className="mb-6">
-          <button onClick={() => router.back()} className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-green-600 transition-colors mb-4 group">
-            <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+          <button onClick={() => router.back()} className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-all group shadow-sm">
+            <ChevronLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
             <span>Back</span>
           </button>
           <div className="flex items-center gap-2 text-sm text-gray-400 flex-wrap">
