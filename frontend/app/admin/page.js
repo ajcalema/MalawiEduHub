@@ -1754,19 +1754,18 @@ export default function AdminPage() {
     try {
       const [statsRes, analyticsRes, queueRes, docsRes, dupRes, requestsRes, usersRes, revRes, settingsRes] =
         await Promise.allSettled([
-          adminApi.stats().catch(e => { console.error('adminApi.stats error:', e); throw e }),
-          adminApi.analytics().catch(e => { console.error('adminApi.analytics error:', e); throw e }),
-          documentsApi.queue().catch(e => { console.error('documentsApi.queue error:', e); throw e }),
-          documentsApi.browse({ limit: 200, scope: 'all' }).catch(e => { console.error('documentsApi.browse error:', e); throw e }),
-          documentsApi.duplicateLog().catch(e => { console.error('documentsApi.duplicateLog error:', e); throw e }),
-          documentsApi.allRequests().catch(e => { console.error('documentsApi.allRequests error:', e); throw e }),
-          adminApi.users().catch(e => { console.error('adminApi.users error:', e); throw e }),
-          paymentsApi.revenue({ period: 'month' }).catch(e => { console.error('paymentsApi.revenue error:', e); throw e }),
-          adminApi.settings().catch(e => { console.error('adminApi.settings error:', e); throw e }),
+          adminApi.stats(),
+          adminApi.analytics(),
+          documentsApi.queue(),
+          documentsApi.browse({ limit: 200, scope: 'all' }),
+          documentsApi.duplicateLog(),
+          documentsApi.allRequests(),
+          adminApi.users(),
+          paymentsApi.revenue({ period: 'month' }),
+          adminApi.settings(),
         ])
 
       if (statsRes.status === 'fulfilled') setStats(statsRes.value.data)
-      else console.error('statsRes failed:', statsRes.reason)
 
       if (analyticsRes.status === 'fulfilled') setAnalytics(analyticsRes.value.data)
       else if (!silent) console.log('Analytics not loaded')
@@ -1806,12 +1805,9 @@ export default function AdminPage() {
       if (settingsRes.status === 'fulfilled') {
         const s = settingsRes.value.data
         setSettings(Array.isArray(s) ? s : [])
-      } else {
-        console.error('Settings load failed:', settingsRes.reason)
-        if (!silent) toast.error('Could not load settings.')
-      }
+      } else if (!silent) toast.error('Could not load settings.')
     } catch (e) {
-      console.error('loadData catch:', e)
+      console.error(e)
       if (!silent) toast.error('Failed to refresh admin data.')
     } finally {
       if (!silent) setLoading(false)
