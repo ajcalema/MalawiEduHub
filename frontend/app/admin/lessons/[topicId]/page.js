@@ -96,8 +96,8 @@ function LessonEditorContent() {
       } else {
         const { data } = await lessonsApi.adminCreateLesson(form)
         toast.success('Lesson created successfully!')
-        // Redirect to manage lessons for this topic
-        setTimeout(() => router.push('/admin'), 1500)
+        // Redirect back to manage lessons for this topic
+        setTimeout(() => router.push(`/admin/learning-room?manageTopic=${topicId}`), 1000)
         return
       }
     } catch (err) {

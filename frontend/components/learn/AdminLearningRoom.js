@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { learnApi, lessonsApi, subjectsApi, documentsApi } from '@/lib/api'
 import toast from 'react-hot-toast'
 import {
@@ -458,6 +458,7 @@ function ResourceLinker({ topicId, onClose }) {
 // ── Main Learning Room admin tab ──────────────
 export default function TabLearningRoom() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [classes,    setClasses]    = useState([])
   const [subjects,   setSubjects]   = useState([])
   const [topics,     setTopics]     = useState([])
@@ -467,16 +468,26 @@ export default function TabLearningRoom() {
   const [linkTopic,  setLinkTopic]  = useState(null)
   const [filterClass,setFilterClass] = useState('')
   const [filterSubj, setFilterSubj]  = useState('')
-  
-  // Lesson & Quiz management
   const [manageTopic, setManageTopic] = useState(null) // Topic being managed for lessons/quizzes
   const [lessons, setLessons] = useState([])
+  const [quizzes, setQuizzes] = useState([])
+  const [activeTab, setActiveTab] = useState('lessons')
   const [showLessonForm, setShowLessonForm] = useState(false)
   const [editLesson, setEditLesson] = useState(null)
-  const [quizzes, setQuizzes] = useState([])
+
+  // Auto-open topic management if URL has manageTopic parameter
+  useEffect(() => {
+    const topicId = searchParams.get('manageTopic')
+    if (topicId && topics.length > 0) {
+      const topic = topics.find(t => t.id === parseInt(topicId))
+      if (topic) {
+        handleOpenManageTopic(topic)
+      }
+    }
+  }, [topics, searchParams])
+  
   const [showQuizForm, setShowQuizForm] = useState(false)
   const [editQuiz, setEditQuiz] = useState(null)
-  const [activeTab, setActiveTab] = useState('lessons') // 'lessons' or 'quizzes'
 
   const loadAll = async () => {
     setLoading(true)
