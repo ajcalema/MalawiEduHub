@@ -238,15 +238,21 @@ export default function TabLearningRoom() {
   const loadAll = async () => {
     setLoading(true)
     try {
-      const [cls, subj, top] = await Promise.all([
-        learnApi.adminClasses(),
-        subjectsApi.list(),
-        learnApi.adminTopics({ class_id: filterClass || undefined, subject_id: filterSubj || undefined }),
+      const [clsRes, subjRes, topRes] = await Promise.all([
+        learnApi.adminClasses().catch(e => { console.error('adminClasses error:', e); throw e }),
+        subjectsApi.list().catch(e => { console.error('subjectsApi error:', e); throw e }),
+        learnApi.adminTopics({ class_id: filterClass || undefined, subject_id: filterSubj || undefined }).catch(e => { console.error('adminTopics error:', e); throw e }),
       ])
-      setClasses(cls.data)
-      setSubjects(subj.data)
-      setTopics(top.data)
-    } catch { toast.error('Failed to load learning data.') }
+      console.log('adminClasses:', clsRes.data)
+      console.log('subjectsApi:', subjRes.data)
+      console.log('adminTopics:', topRes.data)
+      setClasses(clsRes.data || [])
+      setSubjects(subjRes.data || [])
+      setTopics(topRes.data || [])
+    } catch (err) { 
+      console.error('loadAll error:', err)
+      toast.error('Failed to load learning data.') 
+    }
     finally { setLoading(false) }
   }
 
