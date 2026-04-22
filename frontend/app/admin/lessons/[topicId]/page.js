@@ -90,15 +90,14 @@ function LessonEditorContent() {
       if (lessonId) {
         await lessonsApi.adminUpdateLesson(lessonId, form)
         toast.success('Lesson updated successfully!')
+        // Stay on edit page after update
       } else {
         const { data } = await lessonsApi.adminCreateLesson(form)
         toast.success('Lesson created successfully!')
-        // Redirect to edit mode
-        router.push(`/admin/lessons/${topicId}/edit?lessonId=${data.id}`)
+        // Redirect to edit mode for the new lesson
+        setTimeout(() => router.push(`/admin/lessons/${topicId}?lessonId=${data.id}`), 1000)
         return
       }
-      // Go back to learning room
-      setTimeout(() => router.push('/admin'), 1000)
     } catch (err) {
       toast.error(err?.response?.data?.error || 'Failed to save lesson.')
     } finally {
