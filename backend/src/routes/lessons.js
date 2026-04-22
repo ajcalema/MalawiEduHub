@@ -380,7 +380,7 @@ router.delete('/admin/questions/:questionId/answers/:answerId', requireAuth, req
 router.get('/topics/:topicId/lessons', requireAuth, async (req, res) => {
   try {
     const result = await query(
-      `SELECT id, title, content_html, video_url, sort_order, duration_minutes, material_count
+      `SELECT id, title, content, content_html, video_url, sort_order, duration_minutes, material_count
        FROM v_lessons_full
        WHERE topic_id = $1 AND is_active = TRUE
        ORDER BY sort_order`,
@@ -397,7 +397,7 @@ router.get('/topics/:topicId/lessons', requireAuth, async (req, res) => {
 router.get('/lessons/:lessonId', requireAuth, async (req, res) => {
   try {
     const lessonResult = await query(
-      `SELECT id, title, content_html, video_url, duration_minutes, material_count
+      `SELECT id, title, content, content_html, video_url, duration_minutes, material_count
        FROM v_lessons_full
        WHERE id = $1 AND is_active = TRUE`,
       [req.params.lessonId]
