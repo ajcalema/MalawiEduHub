@@ -116,12 +116,27 @@ FROM classes c, subjects s
 WHERE s.is_active = TRUE
 ON CONFLICT DO NOTHING;
 
--- Seed example Biology topics for Form 2 (using id directly since slug might not exist yet)
-INSERT INTO topics (class_id, subject_id, title, sort_order) VALUES
-  (2, 2, 'Cell Structure and Function', 1),
-  (2, 2, 'Nutrition in Plants', 2),
-  (2, 2, 'Nutrition in Animals', 3),
-  (2, 2, 'Transport in Plants', 4),
-  (2, 2, 'Transport in Animals', 5),
-  (2, 2, 'Respiration', 6)
-ON CONFLICT DO NOTHING;
+-- Seed example Biology topics for Form 2 (only if class and subject exist)
+DO $$
+DECLARE
+  v_class_id INTEGER;
+  v_subject_id INTEGER;
+BEGIN
+  -- Get Form 2 class ID
+  SELECT id INTO v_class_id FROM classes WHERE slug = 'form-2' OR name = 'Form 2' LIMIT 1;
+  
+  -- Get Biology subject ID
+  SELECT id INTO v_subject_id FROM subjects WHERE slug = 'biology' OR name = 'Biology' LIMIT 1;
+  
+  -- Only insert if both exist
+  IF v_class_id IS NOT NULL AND v_subject_id IS NOT NULL THEN
+    INSERT INTO topics (class_id, subject_id, title, description, sort_order) VALUES
+      (v_class_id, v_subject_id, 'Cell Structure and Function', 'Understanding the cell', 1),
+      (v_class_id, v_subject_id, 'Nutrition in Plants', 'How plants make food', 2),
+      (v_class_id, v_subject_id, 'Nutrition in Animals', 'Digestive system', 3),
+      (v_class_id, v_subject_id, 'Transport in Plants', 'Xylem and phloem', 4),
+      (v_class_id, v_subject_id, 'Transport in Animals', 'Circulatory system', 5),
+      (v_class_id, v_subject_id, 'Respiration', 'Gas exchange', 6)
+    ON CONFLICT DO NOTHING;
+  END IF;
+END $$;
