@@ -48,13 +48,19 @@ export default function SubjectsPage() {
       <Navbar />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-24 pb-16">
 
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-gray-400 mb-8">
-          <Link href="/learn" className="hover:text-green-600 transition-colors no-underline flex items-center gap-1">
-            <GraduationCap size={14} /> Learning Room
+        {/* Back button + Breadcrumb */}
+        <div className="mb-6">
+          <Link href="/learn" className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-green-600 transition-colors no-underline mb-4 group">
+            <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+            <span>Back to Learning Room</span>
           </Link>
-          <ChevronRight size={14} />
-          <span className="text-gray-700 font-medium">{className}</span>
+          <div className="flex items-center gap-2 text-sm text-gray-400">
+            <Link href="/learn" className="hover:text-green-600 transition-colors no-underline flex items-center gap-1">
+              <GraduationCap size={14} /> Learning Room
+            </Link>
+            <ChevronRight size={14} />
+            <span className="text-gray-700 font-medium">{className}</span>
+          </div>
         </div>
 
         {/* Header */}

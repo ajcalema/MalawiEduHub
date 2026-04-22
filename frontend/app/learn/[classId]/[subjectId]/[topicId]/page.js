@@ -129,17 +129,23 @@ export default function LearningRoomPage() {
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-24 pb-16">
 
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-6 flex-wrap">
-          <Link href="/learn" className="hover:text-green-600 no-underline transition-colors">Learning Room</Link>
-          <ChevronRight size={12} />
-          <Link href={`/learn/${classId}`} className="hover:text-green-600 no-underline transition-colors">{topic.class_name}</Link>
-          <ChevronRight size={12} />
-          <Link href={`/learn/${classId}/${subjectId}`} className="hover:text-green-600 no-underline transition-colors">
-            {topic.subject_icon} {topic.subject_name}
-          </Link>
-          <ChevronRight size={12} />
-          <span className="text-gray-600 font-medium truncate max-w-[140px]">{topic.title}</span>
+        {/* Back button + Breadcrumb */}
+        <div className="mb-6">
+          <button onClick={() => router.back()} className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-green-600 transition-colors mb-4 group">
+            <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+            <span>Back</span>
+          </button>
+          <div className="flex items-center gap-1.5 text-xs text-gray-400 flex-wrap">
+            <Link href="/learn" className="hover:text-green-600 no-underline transition-colors">Learning Room</Link>
+            <ChevronRight size={12} />
+            <Link href={`/learn/${classId}`} className="hover:text-green-600 no-underline transition-colors">{topic.class_name}</Link>
+            <ChevronRight size={12} />
+            <Link href={`/learn/${classId}/${subjectId}`} className="hover:text-green-600 no-underline transition-colors">
+              {topic.subject_icon} {topic.subject_name}
+            </Link>
+            <ChevronRight size={12} />
+            <span className="text-gray-600 font-medium truncate max-w-[140px]">{topic.title}</span>
+          </div>
         </div>
 
         {/* Topic header card */}
