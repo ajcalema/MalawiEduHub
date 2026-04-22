@@ -39,13 +39,20 @@ async function runMigration() {
   
   try {
     // Read the schema file
-    const schemaPath = path.join(__dirname, '..', 'database', 'schema_learning.sql')
-    const schemaSQL = fs.readFileSync(schemaPath, 'utf8')
+    const schemaPath = path.join(__dirname, '..', '..', 'database', 'schema_learning.sql')
+    let schemaSQL = fs.readFileSync(schemaPath, 'utf8')
+    
+    // Remove the INSERT statements for classes since they already exist
+    // We'll handle them separately
+    schemaSQL = schemaSQL.replace(
+      /-- Insert classes[\s\S]*?ON CONFLICT \(slug\) DO UPDATE SET[\s\S]*?level_type = EXCLUDED\.level_type;/,
+      '-- Classes already exist, skipping insert'
+    )
     
     console.log('📄 Reading schema from:', schemaPath)
     console.log('📝 Executing SQL migration...\n')
     
-    // Execute the entire schema file
+    // Execute the schema file
     await client.query(schemaSQL)
     
     console.log('\n✅ Migration completed successfully!')
