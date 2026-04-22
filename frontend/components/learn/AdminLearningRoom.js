@@ -195,114 +195,145 @@ function LessonForm({ topicId, initial, onSave, onCancel }) {
     <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
       <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
         <BookOpen size={15} className="text-blue-600" />
-        {initial?.id ? 'Edit lesson' : 'Create new lesson'}
+        {initial?.id ? 'Edit Lesson' : 'Create New Lesson'}
       </h3>
-      <div className="mb-3">
-        <label className="text-xs font-semibold text-green-700 uppercase tracking-wider block mb-1">Lesson title *</label>
-        <input value={form.title} onChange={e => set('title', e.target.value)}
-          placeholder="e.g. Introduction to Cells"
-          className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400" />
-      </div>
-      <div className="mb-3">
-        <label className="text-xs font-semibold text-green-700 uppercase tracking-wider block mb-1">Content (plain text)</label>
-        <textarea value={form.content || ''} onChange={e => set('content', e.target.value)}
-          placeholder="Lesson content..."
-          rows={4}
-          className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400" />
-      </div>
-      <div className="mb-3">
-        <label className="text-xs font-semibold text-green-700 uppercase tracking-wider block mb-1">Content (HTML - optional)</label>
-        <textarea value={form.content_html || ''} onChange={e => set('content_html', e.target.value)}
-          placeholder="<p>Formatted content with HTML tags</p>"
-          rows={4}
-          className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400 font-mono" />
-      </div>
-      <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="col-span-2">
-          <label className="text-xs font-semibold text-green-700 uppercase tracking-wider block mb-1">Video URL (optional)</label>
-          <input value={form.video_url || ''} onChange={e => set('video_url', e.target.value)}
-            placeholder="https://youtube.com/watch?v=..."
-            className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400" />
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-green-700 uppercase tracking-wider block mb-1">Duration (min)</label>
-          <input type="number" value={form.duration_minutes || ''} onChange={e => set('duration_minutes', e.target.value ? parseInt(e.target.value) : null)}
-            placeholder="30"
-            className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400 text-center" />
-        </div>
-      </div>
+      
+      {/* Lesson Title */}
       <div className="mb-4">
-        <label className="text-xs font-semibold text-green-700 uppercase tracking-wider block mb-1">Order</label>
-        <input type="number" value={form.sort_order} onChange={e => set('sort_order', parseInt(e.target.value) || 0)}
-          className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400 text-center" />
+        <label className="text-xs font-semibold text-green-700 uppercase tracking-wider block mb-2">Lesson Title *</label>
+        <input value={form.title} onChange={e => set('title', e.target.value)}
+          placeholder="e.g. Introduction to Cell Biology"
+          className="w-full px-4 py-3 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400 focus:bg-white" />
       </div>
       
-      {/* Materials Section (only for existing lessons) */}
+      {/* Teaching Notes - Main Content */}
+      <div className="mb-4">
+        <label className="text-xs font-semibold text-green-700 uppercase tracking-wider block mb-2">
+          Teaching Notes (Lesson Content) *
+        </label>
+        <p className="text-xs text-gray-500 mb-2">This is what students will read and learn from. Write your full lesson content here.</p>
+        <textarea value={form.content || ''} onChange={e => set('content', e.target.value)}
+          placeholder={`Example:\n\n# Introduction to Cells\n\nCells are the basic building blocks of all living things. ...\n\n## Types of Cells\n\n1. Plant Cells\n2. Animal Cells\n\n**Key Points:**\n- All living organisms are made of cells\n- Cells carry out all life processes`}
+          rows={12}
+          className="w-full px-4 py-3 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400 focus:bg-white font-mono leading-relaxed" />
+        <p className="text-xs text-gray-400 mt-1">💡 Tip: Use # for headings, ## for subheadings, ** for bold, * for italic, - for bullet points</p>
+      </div>
+      
+      {/* Video URL (Optional) */}
+      <div className="mb-4">
+        <label className="text-xs font-semibold text-green-700 uppercase tracking-wider block mb-2">
+          Video URL (Optional)
+        </label>
+        <input value={form.video_url || ''} onChange={e => set('video_url', e.target.value)}
+          placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
+          className="w-full px-4 py-3 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400 focus:bg-white" />
+        <p className="text-xs text-gray-400 mt-1">Add a YouTube or Vimeo video link to supplement the lesson</p>
+      </div>
+      
+      {/* Duration and Order */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label className="text-xs font-semibold text-green-700 uppercase tracking-wider block mb-2">Reading Time (minutes)</label>
+          <input type="number" value={form.duration_minutes || ''} onChange={e => set('duration_minutes', e.target.value ? parseInt(e.target.value) : null)}
+            placeholder="15"
+            className="w-full px-4 py-3 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400 focus:bg-white text-center" />
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-green-700 uppercase tracking-wider block mb-2">Lesson Order</label>
+          <input type="number" value={form.sort_order} onChange={e => set('sort_order', parseInt(e.target.value) || 0)}
+            placeholder="1"
+            className="w-full px-4 py-3 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400 focus:bg-white text-center" />
+        </div>
+      </div>
+      
+      {/* Supporting Materials Section */}
       {initial?.id && (
-        <div className="border-t border-gray-100 pt-4 mb-4">
+        <div className="border-t-2 border-dashed border-gray-200 pt-5 mb-4">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider flex items-center gap-2">
-              <FileText size={13} className="text-green-600" />
-              Lesson Materials ({materials.length})
-            </h4>
+            <div>
+              <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+                <FileText size={13} className="text-green-600" />
+                Supporting Materials ({materials.length})
+              </h4>
+              <p className="text-xs text-gray-500 mt-1">PDFs, past papers, diagrams, or other documents students can download</p>
+            </div>
             <button onClick={() => setShowMaterialForm(!showMaterialForm)}
-              className="text-xs font-semibold text-blue-600 hover:text-blue-700">
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                showMaterialForm 
+                  ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-green-500 text-white hover:bg-green-400'
+              }`}>
               {showMaterialForm ? 'Cancel' : '+ Add Material'}
             </button>
           </div>
           
+          {/* Add Material Form */}
           {showMaterialForm && (
-            <div className="bg-gray-50 rounded-xl p-3 mb-3 space-y-2">
-              <input value={newMaterial.title} onChange={e => setNewMaterial({...newMaterial, title: e.target.value})}
-                placeholder="Material title"
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white" />
-              <select value={newMaterial.material_type} onChange={e => setNewMaterial({...newMaterial, material_type: e.target.value})}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white">
-                <option value="document">Document</option>
-                <option value="video">Video</option>
-                <option value="audio">Audio</option>
-                <option value="link">Link</option>
-                <option value="text">Text</option>
-              </select>
-              <input value={newMaterial.content} onChange={e => setNewMaterial({...newMaterial, content: e.target.value})}
-                placeholder={newMaterial.material_type === 'link' ? 'https://...' : 'Content or URL'}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white" />
-              <button onClick={handleAddMaterial}
-                className="px-3 py-2 text-xs font-semibold text-white bg-green-500 rounded-lg hover:bg-green-400">
-                Add Material
-              </button>
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-4 mb-4 border border-green-100">
+              <p className="text-xs font-semibold text-gray-700 mb-3">Add Supporting Material</p>
+              <div className="space-y-2">
+                <input value={newMaterial.title} onChange={e => setNewMaterial({...newMaterial, title: e.target.value})}
+                  placeholder="Material title (e.g. 'Cell Structure Diagram PDF')"
+                  className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white" />
+                <select value={newMaterial.material_type} onChange={e => setNewMaterial({...newMaterial, material_type: e.target.value})}
+                  className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white">
+                  <option value="document">📄 Document (PDF, DOCX)</option>
+                  <option value="video">🎥 Video Link</option>
+                  <option value="link">🔗 External Link</option>
+                  <option value="text">📝 Text Note</option>
+                </select>
+                <input value={newMaterial.content} onChange={e => setNewMaterial({...newMaterial, content: e.target.value})}
+                  placeholder={newMaterial.material_type === 'link' || newMaterial.material_type === 'video' ? 'https://...' : 'Description or URL'}
+                  className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white" />
+                <button onClick={handleAddMaterial}
+                  className="w-full px-3 py-2.5 text-xs font-semibold text-white bg-green-500 rounded-lg hover:bg-green-400">
+                  ✓ Add Material
+                </button>
+              </div>
             </div>
           )}
           
+          {/* Materials List */}
           {materials.length > 0 && (
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {materials.map(mat => (
-                <div key={mat.id} className="flex items-center gap-2 p-2 bg-white border border-gray-100 rounded-lg">
-                  <FileText size={12} className="text-gray-400 flex-shrink-0" />
+                <div key={mat.id} className="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-lg hover:bg-gray-50">
+                  <div className="w-8 h-8 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center flex-shrink-0">
+                    <FileText size={13} className="text-green-600" />
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-700 truncate">{mat.title}</p>
-                    <p className="text-[10px] text-gray-400 capitalize">{mat.material_type}</p>
+                    <p className="text-xs font-semibold text-gray-700 truncate">{mat.title}</p>
+                    <p className="text-[10px] text-gray-400 capitalize">{mat.material_type === 'document' ? 'Document' : mat.material_type === 'video' ? 'Video' : mat.material_type === 'link' ? 'Link' : 'Text'}</p>
                   </div>
                   <button onClick={() => handleDeleteMaterial(mat.id)}
-                    className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500">
-                    <Trash2 size={11} />
+                    className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
+                    <Trash2 size={12} />
                   </button>
                 </div>
               ))}
             </div>
           )}
+          
+          {materials.length === 0 && !showMaterialForm && (
+            <div className="text-center py-6 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+              <FileText size={24} className="text-gray-300 mx-auto mb-2" />
+              <p className="text-xs text-gray-500">No supporting materials yet</p>
+              <p className="text-[10px] text-gray-400 mt-1">Click "+ Add Material" to add PDFs, diagrams, or other resources</p>
+            </div>
+          )}
         </div>
       )}
       
-      <div className="flex gap-2 justify-end">
+      {/* Save/Cancel Buttons */}
+      <div className="flex gap-2 justify-end pt-3 border-t border-gray-100">
         <button onClick={onCancel}
-          className="px-4 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">
+          className="px-5 py-2.5 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">
           Cancel
         </button>
         <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-500 rounded-xl hover:bg-blue-400 disabled:opacity-50">
-          {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-          {initial?.id ? 'Save changes' : 'Create lesson'}
+          className="flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-white bg-blue-500 rounded-xl hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed">
+          {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+          {initial?.id ? 'Save Changes' : 'Create Lesson'}
         </button>
       </div>
     </div>
