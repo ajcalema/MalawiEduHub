@@ -510,6 +510,14 @@ export default function TabLearningRoom() {
     } catch { toast.error('Failed to delete.') }
   }
   
+  const handleAddTopic = () => {
+    router.push('/admin/topics')
+  }
+  
+  const handleEditTopic = (topicId) => {
+    router.push(`/admin/topics?topicId=${topicId}`)
+  }
+  
   const loadLessons = async (topicId) => {
     try {
       const { data } = await lessonsApi.adminGetLessons(topicId)
@@ -575,7 +583,7 @@ export default function TabLearningRoom() {
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">{topics.length} topics across all classes</p>
         </div>
-        <button onClick={() => { setShowForm(true); setEditTopic(null); setLinkTopic(null) }}
+        <button onClick={() => handleAddTopic()}
           className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white
             bg-green-500 rounded-xl hover:bg-green-400 transition-all">
           <Plus size={14} /> Add topic
@@ -617,16 +625,6 @@ export default function TabLearningRoom() {
           </button>
         )}
       </div>
-
-      {/* Create / Edit form */}
-      {(showForm || editTopic) && (
-        <TopicForm
-          classes={classes} subjects={subjects}
-          initial={editTopic}
-          onSave={() => { setShowForm(false); setEditTopic(null); loadAll() }}
-          onCancel={() => { setShowForm(false); setEditTopic(null) }}
-        />
-      )}
 
       {/* Resource linker */}
       {linkTopic && (
@@ -889,7 +887,7 @@ export default function TabLearningRoom() {
                         <LinkIcon size={13} />
                       </button>
                       <button
-                        onClick={() => { setEditTopic(topic); setShowForm(false); setLinkTopic(null) }}
+                        onClick={() => handleEditTopic(topic.id)}
                         title="Edit topic"
                         className="p-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
                         <Edit2 size={13} />
