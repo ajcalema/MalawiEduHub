@@ -58,7 +58,8 @@ export default function LearningRoomPage() {
   const [loading,   setLoading]   = useState(true)
   const [marking,   setMarking]   = useState(false)
   const [accessDoc, setAccessDoc] = useState(null)
-  const [activeTab, setActiveTab] = useState('resources') // 'resources', 'lessons', 'quizzes'
+  const [activeTab, setActiveTab] = useState('lessons') // 'lessons', 'resources', 'quizzes'
+  const [currentLesson, setCurrentLesson] = useState(0) // Index of current lesson being viewed
 
   useEffect(() => {
     if (user === null) { router.push('/auth/login'); return }
@@ -315,31 +316,146 @@ export default function LearningRoomPage() {
         </div>
         )}
 
-        {/* Lessons Tab */}
+        {/* Lessons Tab - Main Learning Interface */}
         {activeTab === 'lessons' && lessons.length > 0 && (
-          <div className="space-y-4 mb-6">
-            {lessons.map((lesson, idx) => (
-              <div key={lesson.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-                <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-3">
-                  <div className="w-9 h-10 bg-blue-50 rounded-lg border border-blue-100 flex items-center justify-center flex-shrink-0">
-                    <BookOpen size={15} className="text-blue-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-sm font-semibold text-gray-800">{lesson.title}</h2>
-                    {lesson.duration_minutes && (
-                      <p className="text-xs text-gray-400 mt-0.5">{lesson.duration_minutes} minutes</p>
+          <div className="mb-6">
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+              {/* Lesson Header with Navigation */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-serif font-bold text-gray-900">
+                      {lessons[currentLesson]?.title}
+                    </h2>
+                    {lessons[currentLesson]?.duration_minutes && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        ⏱ {lessons[currentLesson].duration_minutes} minutes read
+                      </p>
                     )}
                   </div>
+                  <div className="text-xs text-gray-500 font-semibold">
+                    Lesson {currentLesson + 1} of {lessons.length}
+                  </div>
                 </div>
-                <div className="p-5">
-                  {lesson.content_html ? (
-                    <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: lesson.content_html }} />
-                  ) : (
-                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{lesson.content}</p>
-                  )}
+                
+                {/* Progress Bar */}
+                <div className="mt-3 h-1 bg-blue-100 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                    style={{ width: `${((currentLesson + 1) / lessons.length) * 100}%` }}
+                  />
                 </div>
               </div>
-            ))}
+
+              {/* Lesson Content - Main Reading Area */}
+              <div className="px-8 py-10 min-h-[400px]">
+                {lessons[currentLesson]?.content_html ? (
+                  <div 
+                    className="prose prose-lg max-w-none prose-headings:font-serif prose-a:text-blue-600 hover:prose-a:text-blue-700"
+                    dangerouslySetInnerHTML={{ __html: lessons[currentLesson].content_html }} 
+                  />
+                ) : (
+                  <div className="prose prose-lg max-w-none">
+                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-base">
+                      {lessons[currentLesson]?.content}
+                    </p>
+                  </div>
+                )}
+                
+                {/* If no content */}
+                {!lessons[currentLesson]?.content_html && !lessons[currentLesson]?.content && (
+                  <div className="text-center py-12">
+                    <BookOpen size={48} className="text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 font-medium">No content for this lesson yet</p>
+                    <p className="text-sm text-gray-400 mt-1">Check back later or explore the resources tab.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Lesson Navigation */}
+              <div className="border-t border-gray-100 px-6 py-4 bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <button 
+                    onClick={() => setCurrentLesson(Math.max(0, currentLesson - 1))}
+                    disabled={currentLesson === 0}
+                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-blue-700 
+                      bg-white border border-blue-200 rounded-xl hover:bg-blue-50 
+                      disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                    <ChevronLeft size={16} />
+                    Previous Lesson
+                  </button>
+                  
+                  {/* Lesson Indicator Dots */}
+                  <div className="flex gap-2">
+                    {lessons.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentLesson(idx)}
+                        className={`w-2.5 h-2.5 rounded-full transition-all ${
+                          idx === currentLesson 
+                            ? 'bg-blue-500 scale-125' 
+                            : 'bg-gray-300 hover:bg-gray-400'
+                        }`}
+                        title={`Lesson ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+
+                  <button 
+                    onClick={() => setCurrentLesson(Math.min(lessons.length - 1, currentLesson + 1))}
+                    disabled={currentLesson === lessons.length - 1}
+                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white 
+                      bg-blue-500 rounded-xl hover:bg-blue-400 
+                      disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                    Next Lesson
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            {/* Lesson List Sidebar */}
+            <div className="mt-4 bg-white rounded-2xl border border-gray-100 p-4">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <ListChecks size={14} />
+                All Lessons in This Topic
+              </h3>
+              <div className="space-y-2">
+                {lessons.map((lesson, idx) => (
+                  <button
+                    key={lesson.id}
+                    onClick={() => setCurrentLesson(idx)}
+                    className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${
+                      idx === currentLesson
+                        ? 'bg-blue-50 border-blue-200 shadow-sm'
+                        : 'bg-white border-gray-100 hover:border-blue-100 hover:bg-gray-50'
+                    }`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                        idx === currentLesson
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {idx + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium truncate ${
+                          idx === currentLesson ? 'text-blue-700' : 'text-gray-700'
+                        }`}>
+                          {lesson.title}
+                        </p>
+                        {lesson.duration_minutes && (
+                          <p className="text-xs text-gray-400 mt-0.5">{lesson.duration_minutes} min</p>
+                        )}
+                      </div>
+                      {idx === currentLesson && (
+                        <div className="w-2 h-2 rounded-full bg-blue-500" />
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
