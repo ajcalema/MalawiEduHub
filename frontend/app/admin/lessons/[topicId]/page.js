@@ -637,7 +637,7 @@ There are two main types of cells:
                 {/* Done Button - Clear way out */}
                 <div className="mt-6 pt-4 border-t border-gray-100">
                   <button 
-                    onClick={() => router.push(`/admin?manageTopic=${topicId}`)}
+                    onClick={() => router.push(`/admin?tab=learning&manageTopic=${topicId}`)}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-gray-700 
                       bg-gray-100 rounded-xl hover:bg-gray-200 transition-all">
                     <ArrowLeft size={16} />
