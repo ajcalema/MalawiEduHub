@@ -242,7 +242,7 @@ function LessonEditorContent() {
         const formData = new FormData()
         formData.append('file', selectedFile)
         formData.append('title', newMaterial.title.trim())
-        formData.append('subject_name', 'Learning Room')
+        formData.append('subject_name', 'Mathematics') // Use valid subject from database
         formData.append('level', 'learning-room')
         formData.append('doc_type', 'notes')
         formData.append('year', String(new Date().getFullYear()))
