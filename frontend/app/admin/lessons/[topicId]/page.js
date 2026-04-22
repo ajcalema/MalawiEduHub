@@ -637,11 +637,11 @@ There are two main types of cells:
                 {/* Done Button - Clear way out */}
                 <div className="mt-6 pt-4 border-t border-gray-100">
                   <button 
-                    onClick={() => router.push('/admin')}
+                    onClick={() => router.push('/learn')}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-gray-700 
                       bg-gray-100 rounded-xl hover:bg-gray-200 transition-all">
                     <ArrowLeft size={16} />
-                    Done - Back to Admin
+                    Done - Back to Learning Room
                   </button>
                   <p className="text-[10px] text-gray-400 text-center mt-2">
                     Your lesson has been saved. You can return anytime to edit it.
