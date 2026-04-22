@@ -466,149 +466,8 @@ There are two main types of cells:
                 💡 Tip: Use # for headings, ## for subheadings, ** for bold, * for italic, - for bullet points, 1. 2. 3. for numbered lists
               </p>
             </div>
-          </div>
 
-          {/* Sidebar - Lessons List & Actions */}
-          <div className="space-y-6">
-            {/* Lessons in Topic Sidebar */}
-            {allLessons.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <Layers size={14} className="text-blue-600" />
-                  Lessons in This Topic
-                </h3>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {allLessons.sort((a, b) => a.sort_order - b.sort_order).map((lesson, idx) => {
-                    const isCurrentLesson = lessonId && lesson.id === parseInt(lessonId)
-                    return (
-                      <button
-                        key={lesson.id}
-                        onClick={() => {
-                          if (lesson.id !== parseInt(lessonId)) {
-                            router.push(`/admin/lessons/${topicId}?lessonId=${lesson.id}`)
-                          }
-                        }}
-                        className={`w-full text-left p-3 rounded-xl border transition-all ${
-                          isCurrentLesson
-                            ? 'bg-blue-50 border-blue-200 border-l-4 border-l-blue-500'
-                            : 'bg-gray-50 border-gray-100 hover:bg-gray-100'
-                        }`}
-                      >
-                        <div className="flex items-start gap-2">
-                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold ${
-                            isCurrentLesson ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'
-                          }`}>
-                            {idx + 1}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-xs font-medium truncate ${
-                              isCurrentLesson ? 'text-blue-900' : 'text-gray-700'
-                            }`}>
-                              {lesson.title}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              {lesson.duration_minutes && (
-                                <span className="text-[10px] text-gray-400">{lesson.duration_minutes} min</span>
-                              )}
-                              {lesson.material_count > 0 && (
-                                <span className="text-[10px] text-green-600 font-semibold">{lesson.material_count} materials</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Save Actions */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm sticky top-24">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Actions</h3>
-              
-              {/* Auto-save indicator */}
-              {lastSaved && !lessonId && (
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                    <p className="text-xs text-blue-700 font-medium">Auto-saving enabled</p>
-                  </div>
-                  <p className="text-[10px] text-blue-600 mt-1">
-                    Last saved: {lastSaved.toLocaleTimeString()}
-                  </p>
-                </div>
-              )}
-              
-              <div className="space-y-3">
-                <button onClick={handleSave} disabled={saving}
-                  className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white 
-                    bg-blue-500 rounded-xl hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                  {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                  {lessonId ? 'Update Lesson' : 'Create Lesson'}
-                </button>
-                
-                {/* Preview Button */}
-                {(form.title || form.content) && (
-                  <button 
-                    onClick={() => setShowPreview(true)}
-                    className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-purple-700 
-                      bg-purple-50 rounded-xl hover:bg-purple-100 transition-all border border-purple-200">
-                    <Eye size={16} />
-                    Preview Lesson
-                  </button>
-                )}
-                
-                {/* Save & Add Another Button */}
-                {!lessonId && (
-                  <button 
-                    onClick={async () => {
-                      if (!form.title.trim()) {
-                        toast.error('Lesson title is required.')
-                        return
-                      }
-                      setSaving(true)
-                      try {
-                        const { data } = await lessonsApi.adminCreateLesson(form)
-                        toast.success('Lesson created!')
-                        // Redirect to edit the newly created lesson
-                        setTimeout(() => router.push(`/admin/lessons/${topicId}?lessonId=${data.id}`), 500)
-                      } catch (err) {
-                        toast.error(err?.response?.data?.error || 'Failed to save lesson.')
-                      } finally {
-                        setSaving(false)
-                      }
-                    }} 
-                    disabled={saving}
-                    className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-green-700 
-                      bg-green-50 rounded-xl hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all border border-green-200">
-                    <Save size={16} />
-                    Save & Add Another
-                  </button>
-                )}
-                
-                {lessonId && (
-                  <button 
-                    onClick={() => router.push(`/admin/lessons/${topicId}`)}
-                    className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-green-700 
-                      bg-green-50 rounded-xl hover:bg-green-100 transition-all border border-green-200">
-                    + Create New Lesson
-                  </button>
-                )}
-                
-                {lessonId && (
-                  <button 
-                    onClick={handleDuplicateLesson}
-                    className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-indigo-700 
-                      bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-all border border-indigo-200">
-                    <Copy size={16} />
-                    Duplicate Lesson
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Supporting Materials */}
+            {/* Supporting Materials - Moved to main content for better visibility */}
             {lessonId && (
               <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
@@ -763,6 +622,147 @@ There are two main types of cells:
                 )}
               </div>
             )}
+          </div>
+
+          {/* Sidebar - Lessons List & Actions */}
+          <div className="space-y-6">
+            {/* Lessons in Topic Sidebar */}
+            {allLessons.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Layers size={14} className="text-blue-600" />
+                  Lessons in This Topic
+                </h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {allLessons.sort((a, b) => a.sort_order - b.sort_order).map((lesson, idx) => {
+                    const isCurrentLesson = lessonId && lesson.id === parseInt(lessonId)
+                    return (
+                      <button
+                        key={lesson.id}
+                        onClick={() => {
+                          if (lesson.id !== parseInt(lessonId)) {
+                            router.push(`/admin/lessons/${topicId}?lessonId=${lesson.id}`)
+                          }
+                        }}
+                        className={`w-full text-left p-3 rounded-xl border transition-all ${
+                          isCurrentLesson
+                            ? 'bg-blue-50 border-blue-200 border-l-4 border-l-blue-500'
+                            : 'bg-gray-50 border-gray-100 hover:bg-gray-100'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold ${
+                            isCurrentLesson ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'
+                          }`}>
+                            {idx + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs font-medium truncate ${
+                              isCurrentLesson ? 'text-blue-900' : 'text-gray-700'
+                            }`}>
+                              {lesson.title}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              {lesson.duration_minutes && (
+                                <span className="text-[10px] text-gray-400">{lesson.duration_minutes} min</span>
+                              )}
+                              {lesson.material_count > 0 && (
+                                <span className="text-[10px] text-green-600 font-semibold">{lesson.material_count} materials</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Save Actions */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm sticky top-24">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Actions</h3>
+              
+              {/* Auto-save indicator */}
+              {lastSaved && !lessonId && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                    <p className="text-xs text-blue-700 font-medium">Auto-saving enabled</p>
+                  </div>
+                  <p className="text-[10px] text-blue-600 mt-1">
+                    Last saved: {lastSaved.toLocaleTimeString()}
+                  </p>
+                </div>
+              )}
+              
+              <div className="space-y-3">
+                <button onClick={handleSave} disabled={saving}
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white 
+                    bg-blue-500 rounded-xl hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                  {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                  {lessonId ? 'Update Lesson' : 'Create Lesson'}
+                </button>
+                
+                {/* Preview Button */}
+                {(form.title || form.content) && (
+                  <button 
+                    onClick={() => setShowPreview(true)}
+                    className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-purple-700 
+                      bg-purple-50 rounded-xl hover:bg-purple-100 transition-all border border-purple-200">
+                    <Eye size={16} />
+                    Preview Lesson
+                  </button>
+                )}
+                
+                {/* Save & Add Another Button */}
+                {!lessonId && (
+                  <button 
+                    onClick={async () => {
+                      if (!form.title.trim()) {
+                        toast.error('Lesson title is required.')
+                        return
+                      }
+                      setSaving(true)
+                      try {
+                        const { data } = await lessonsApi.adminCreateLesson(form)
+                        toast.success('Lesson created!')
+                        // Redirect to edit the newly created lesson
+                        setTimeout(() => router.push(`/admin/lessons/${topicId}?lessonId=${data.id}`), 500)
+                      } catch (err) {
+                        toast.error(err?.response?.data?.error || 'Failed to save lesson.')
+                      } finally {
+                        setSaving(false)
+                      }
+                    }} 
+                    disabled={saving}
+                    className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-green-700 
+                      bg-green-50 rounded-xl hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all border border-green-200">
+                    <Save size={16} />
+                    Save & Add Another
+                  </button>
+                )}
+                
+                {lessonId && (
+                  <button 
+                    onClick={() => router.push(`/admin/lessons/${topicId}`)}
+                    className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-green-700 
+                      bg-green-50 rounded-xl hover:bg-green-100 transition-all border border-green-200">
+                    + Create New Lesson
+                  </button>
+                )}
+                
+                {lessonId && (
+                  <button 
+                    onClick={handleDuplicateLesson}
+                    className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-indigo-700 
+                      bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-all border border-indigo-200">
+                    <Copy size={16} />
+                    Duplicate Lesson
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
