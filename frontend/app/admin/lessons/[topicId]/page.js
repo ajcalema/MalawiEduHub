@@ -255,7 +255,10 @@ function LessonEditorContent() {
         setUploadProgress(100)
         toast.success('File uploaded successfully!')
       } catch (err) {
-        toast.error(err?.response?.data?.error || 'File upload failed.')
+        console.error('Upload error:', err)
+        console.error('Error response:', err?.response?.data)
+        const errorMsg = err?.response?.data?.error || err?.message || 'File upload failed. Try adding a link or text material instead.'
+        toast.error(errorMsg)
         setUploadingFile(false)
         setUploadProgress(0)
         return
@@ -482,6 +485,16 @@ There are two main types of cells:
                 <p className="text-xs text-gray-500 mb-4">
                   PDFs, past papers, diagrams, or other downloadable resources
                 </p>
+                
+                {/* Helpful Tip */}
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                  <p className="text-xs text-blue-800">
+                    <strong>💡 Tip:</strong> If file upload fails, you can add materials as:
+                    <br/>• <strong>Video Link</strong> - YouTube/Vimeo URLs
+                    <br/>• <strong>External Link</strong> - Any website URL
+                    <br/>• <strong>Text Note</strong> - Inline text content
+                  </p>
+                </div>
 
                 {/* Add Material Button */}
                 <button onClick={() => setShowMaterialForm(!showMaterialForm)}
@@ -620,6 +633,20 @@ There are two main types of cells:
                     <p className="text-xs text-gray-500">No materials yet</p>
                   </div>
                 )}
+                
+                {/* Done Button - Clear way out */}
+                <div className="mt-6 pt-4 border-t border-gray-100">
+                  <button 
+                    onClick={() => router.push('/admin')}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-gray-700 
+                      bg-gray-100 rounded-xl hover:bg-gray-200 transition-all">
+                    <ArrowLeft size={16} />
+                    Done - Back to Admin
+                  </button>
+                  <p className="text-[10px] text-gray-400 text-center mt-2">
+                    Your lesson has been saved. You can return anytime to edit it.
+                  </p>
+                </div>
               </div>
             )}
           </div>
