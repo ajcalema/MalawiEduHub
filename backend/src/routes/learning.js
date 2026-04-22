@@ -31,7 +31,7 @@ const { requireAuth, requireAdmin, optionalAuth } = require('../middleware/auth'
 router.get('/classes', async (req, res) => {
   try {
     const result = await query(
-      `SELECT id, name, slug, sort_order
+      `SELECT id, name, slug, description, sort_order
        FROM classes WHERE is_active = TRUE ORDER BY sort_order`
     )
     res.json(result.rows)
@@ -58,7 +58,7 @@ router.get('/classes/:classId/subjects', async (req, res) => {
 })
 
 // STUDENT — GET topics for class + subject
-router.get('/classes/:classId/subjects/:subjectId/topics', optionalAuth, async (req, res) => {
+router.get('/classes/:classId/subjects/:subjectId/topics', async (req, res) => {
   try {
     const result = await query(
       `SELECT t.id, t.title, t.description, t.sort_order,
