@@ -146,6 +146,7 @@ export const lessonsApi = {
   adminDeleteQuiz:     (id)                         => api.delete(`/lessons/admin/quizzes/${id}`),
   
   // Admin - Questions
+  adminGetQuestions:   (quizId)                     => api.get(`/lessons/admin/quizzes/${quizId}/questions`),
   adminCreateQuestion: (quizId, data)               => api.post(`/lessons/admin/quizzes/${quizId}/questions`, data),
   adminUpdateQuestion: (quizId, questionId, data)   => api.put(`/lessons/admin/quizzes/${quizId}/questions/${questionId}`, data),
   adminDeleteQuestion: (quizId, questionId)         => api.delete(`/lessons/admin/quizzes/${quizId}/questions/${questionId}`),

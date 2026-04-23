@@ -7,7 +7,7 @@ import {
   Plus, Trash2, Edit2, Save, X, ChevronDown, ChevronUp,
   BookOpen, GraduationCap, Loader2, Search,
   Link as LinkIcon, CheckCircle2, FileText, Video, HelpCircle,
-  Layers, ListChecks
+  Layers, ListChecks, Check, XCircle
 } from 'lucide-react'
 
 // ── Small reusable pieces ─────────────────────
@@ -358,7 +358,7 @@ function QuizForm({ topicId, initial, onSave, onCancel }) {
 
   useEffect(() => {
     if (initial?.id) {
-      // Load questions for this quiz
+      // Load quiz details and questions
       lessonsApi.adminGetQuizzes(topicId)
         .then(r => {
           const quiz = r.data?.find(q => q.id === initial.id)
@@ -374,8 +374,21 @@ function QuizForm({ topicId, initial, onSave, onCancel }) {
           }
         })
         .catch(() => {})
+      
+      // Load questions for this quiz
+      loadQuestions()
     }
   }, [initial?.id, topicId])
+  
+  const loadQuestions = async () => {
+    if (!initial?.id) return
+    try {
+      const { data } = await lessonsApi.adminGetQuestions(initial.id)
+      setQuestions(data || [])
+    } catch (err) {
+      console.error('Failed to load questions:', err)
+    }
+  }
 
   const handleSaveQuiz = async () => {
     if (!form.title.trim()) {
@@ -416,8 +429,9 @@ function QuizForm({ topicId, initial, onSave, onCancel }) {
       setNewQuestion({ question_text: '', question_type: 'multiple_choice', points: 1 })
       setShowQuestionForm(false)
       setEditQuestion(null)
+      loadQuestions() // Reload questions list
     } catch (err) {
-      toast.error('Failed to add question.')
+      toast.error(err?.response?.data?.error || 'Failed to add question.')
     }
   }
 
@@ -440,6 +454,7 @@ function QuizForm({ topicId, initial, onSave, onCancel }) {
     try {
       await lessonsApi.adminDeleteQuestion(initial.id, questionId)
       toast.success('Question deleted.')
+      loadQuestions() // Reload questions list
     } catch {
       toast.error('Failed to delete question.')
     }
@@ -555,12 +570,90 @@ function QuizForm({ topicId, initial, onSave, onCancel }) {
             </div>
           )}
 
-          {/* Questions List - Placeholder for now */}
-          <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-            <ListChecks size={32} className="text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">Question management coming soon</p>
-            <p className="text-xs text-gray-400 mt-1">Questions will appear here once added</p>
-          </div>
+          {/* Questions List */}
+          {questions.length > 0 ? (
+            <div className="space-y-4">
+              {questions.map((question, idx) => (
+                <div key={question.id} className="border border-gray-200 rounded-xl p-4 bg-white">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="w-6 h-6 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold">
+                          {idx + 1}
+                        </span>
+                        <span className="text-xs font-semibold text-gray-500 uppercase">
+                          {question.question_type.replace('_', ' ')}
+                        </span>
+                        <span className="text-xs text-gray-400">•</span>
+                        <span className="text-xs text-gray-500">{question.points} point{question.points !== 1 ? 's' : ''}</span>
+                      </div>
+                      <p className="text-sm font-medium text-gray-900">{question.question_text}</p>
+                    </div>
+                    <button onClick={() => handleDeleteQuestion(question.id)}
+                      className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  
+                  {/* Answers for Multiple Choice */}
+                  {question.question_type === 'multiple_choice' && question.answers && (
+                    <div className="ml-8 space-y-2">
+                      <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Answers</p>
+                      {question.answers.map(answer => (
+                        <div key={answer.id} className={`flex items-center gap-2 p-2 rounded-lg border ${
+                          answer.is_correct 
+                            ? 'bg-green-50 border-green-200' 
+                            : 'bg-gray-50 border-gray-100'
+                        }`}>
+                          {answer.is_correct ? (
+                            <Check size={14} className="text-green-600 flex-shrink-0" />
+                          ) : (
+                            <XCircle size={14} className="text-gray-400 flex-shrink-0" />
+                          )}
+                          <span className={`text-xs flex-1 ${
+                            answer.is_correct ? 'text-green-700 font-medium' : 'text-gray-700'
+                          }`}>
+                            {answer.answer_text}
+                          </span>
+                          {answer.is_correct && (
+                            <span className="text-[10px] font-semibold text-green-600 bg-green-100 px-2 py-0.5 rounded">
+                              Correct
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* True/False Display */}
+                  {question.question_type === 'true_false' && (
+                    <div className="ml-8 flex gap-2">
+                      <div className="flex-1 p-2 rounded-lg bg-green-50 border border-green-200">
+                        <span className="text-xs font-medium text-green-700">True</span>
+                        <Check size={12} className="inline ml-1 text-green-600" />
+                      </div>
+                      <div className="flex-1 p-2 rounded-lg bg-gray-50 border border-gray-200">
+                        <span className="text-xs font-medium text-gray-700">False</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Short Answer Note */}
+                  {question.question_type === 'short_answer' && (
+                    <div className="ml-8 p-2 rounded-lg bg-blue-50 border border-blue-100">
+                      <p className="text-xs text-blue-700">Students will type their answer</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+              <ListChecks size={32} className="text-gray-300 mx-auto mb-2" />
+              <p className="text-sm text-gray-500">No questions yet</p>
+              <p className="text-xs text-gray-400 mt-1">Click "+ Add Question" to get started</p>
+            </div>
+          )}
         </div>
       )}
     </div>
