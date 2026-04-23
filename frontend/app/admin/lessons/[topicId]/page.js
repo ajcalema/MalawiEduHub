@@ -456,6 +456,12 @@ There are two main types of cells:
 1. **Plant Cells** - Have cell walls and chloroplasts
 2. **Animal Cells** - Do not have cell walls
 
+## Cell Structure Diagram
+
+![Plant Cell Diagram](https://example.com/plant-cell-diagram.jpg)
+
+*Figure 1: Plant cell structure showing key organelles*
+
 ## Key Points
 
 - All living organisms are made of cells
@@ -467,6 +473,9 @@ There are two main types of cells:
                 className="w-full px-4 py-3 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400 focus:bg-white font-mono leading-relaxed" />
               <p className="text-xs text-gray-400 mt-2">
                 💡 Tip: Use # for headings, ## for subheadings, ** for bold, * for italic, - for bullet points, 1. 2. 3. for numbered lists
+              </p>
+              <p className="text-xs text-blue-600 mt-1 font-medium">
+                📸 Add diagrams: ![Diagram description](image-url) or upload images as supporting materials below
               </p>
             </div>
 
@@ -883,6 +892,15 @@ There are two main types of cells:
                       </p>
                     )
                   })}
+                  
+                  {/* Image/Diagram rendering */}
+                  {form.content.match(/^!\[.*\]\(.*\)$/m) && (
+                    <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                      <p className="text-xs text-blue-800 font-semibold mb-2">📸 Diagrams Preview:</p>
+                      <p className="text-xs text-blue-700">Images will be displayed inline where you add them using the syntax: ![description](url)</p>
+                      <p className="text-xs text-blue-600 mt-1">💡 Tip: Upload diagram images as supporting materials and link to them in your lesson content</p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-12 bg-gray-50 rounded-xl">

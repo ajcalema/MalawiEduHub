@@ -214,10 +214,11 @@ function LessonForm({ topicId, initial, onSave, onCancel }) {
         </label>
         <p className="text-xs text-gray-500 mb-2">This is what students will read and learn from. Write your full lesson content here.</p>
         <textarea value={form.content || ''} onChange={e => set('content', e.target.value)}
-          placeholder={`Example:\n\n# Introduction to Cells\n\nCells are the basic building blocks of all living things. ...\n\n## Types of Cells\n\n1. Plant Cells\n2. Animal Cells\n\n**Key Points:**\n- All living organisms are made of cells\n- Cells carry out all life processes`}
+          placeholder={`Example:\n\n# Introduction to Cells\n\nCells are the basic building blocks of all living things. ...\n\n## Types of Cells\n\n1. Plant Cells\n2. Animal Cells\n\n## Cell Diagram\n\n![Cell Structure](https://example.com/cell-diagram.jpg)\n\n*Figure: Cell structure*\n\n**Key Points:**\n- All living organisms are made of cells\n- Cells carry out all life processes`}
           rows={12}
           className="w-full px-4 py-3 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-green-400 focus:bg-white font-mono leading-relaxed" />
         <p className="text-xs text-gray-400 mt-1">💡 Tip: Use # for headings, ## for subheadings, ** for bold, * for italic, - for bullet points</p>
+        <p className="text-xs text-blue-600 mt-1 font-medium">📸 Add diagrams: ![Diagram description](image-url)</p>
       </div>
       
       {/* Video URL (Optional) */}
@@ -1380,70 +1381,72 @@ export default function TabLearningRoom() {
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-50">
-                {['#','Topic','Class · Subject','Resources','Status','Actions'].map(h => (
-                  <th key={h} className="text-left text-xs font-semibold text-gray-400 px-4 py-3 uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {topics.map(topic => (
-                <tr key={topic.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                  <td className="px-4 py-3 text-xs text-gray-400 font-mono">{topic.sort_order}</td>
-                  <td className="px-4 py-3 max-w-[200px]">
-                    <p className="text-sm font-medium text-gray-800 truncate">{topic.title}</p>
-                    {topic.description && (
-                      <p className="text-xs text-gray-400 truncate mt-0.5">{topic.description}</p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="text-xs font-semibold text-gray-700">{topic.class_name}</p>
-                    <p className="text-xs text-gray-400">{topic.subject_icon} {topic.subject_name}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge color={topic.resource_count > 0 ? 'green' : 'gray'}>
-                      {topic.resource_count || 0} docs
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge color={topic.is_active ? 'green' : 'gray'}>
-                      {topic.is_active ? 'Active' : 'Hidden'}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => handleOpenManageTopic(topic)}
-                        title="Manage lessons"
-                        className="p-1.5 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors border border-purple-100">
-                        <Layers size={13} />
-                      </button>
-                      <button
-                        onClick={() => { setLinkTopic(topic); setShowForm(false); setEditTopic(null) }}
-                        title="Manage resources"
-                        className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border border-blue-100">
-                        <LinkIcon size={13} />
-                      </button>
-                      <button
-                        onClick={() => handleEditTopic(topic.id)}
-                        title="Edit topic"
-                        className="p-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
-                        <Edit2 size={13} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(topic.id, topic.title)}
-                        title="Delete topic"
-                        className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors border border-red-100">
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[640px]">
+              <thead>
+                <tr className="border-b border-gray-50">
+                  {['#','Topic','Class · Subject','Resources','Status','Actions'].map(h => (
+                    <th key={h} className="text-left text-xs font-semibold text-gray-400 px-4 py-3 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {topics.map(topic => (
+                  <tr key={topic.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                    <td className="px-4 py-3 text-xs text-gray-400 font-mono whitespace-nowrap">{topic.sort_order}</td>
+                    <td className="px-4 py-3 max-w-[200px]">
+                      <p className="text-sm font-medium text-gray-800 truncate">{topic.title}</p>
+                      {topic.description && (
+                        <p className="text-xs text-gray-400 truncate mt-0.5">{topic.description}</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <p className="text-xs font-semibold text-gray-700">{topic.class_name}</p>
+                      <p className="text-xs text-gray-400">{topic.subject_icon} {topic.subject_name}</p>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <Badge color={topic.resource_count > 0 ? 'green' : 'gray'}>
+                        {topic.resource_count || 0} docs
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <Badge color={topic.is_active ? 'green' : 'gray'}>
+                        {topic.is_active ? 'Active' : 'Hidden'}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => handleOpenManageTopic(topic)}
+                          title="Manage lessons"
+                          className="p-1.5 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors border border-purple-100">
+                          <Layers size={13} />
+                        </button>
+                        <button
+                          onClick={() => { setLinkTopic(topic); setShowForm(false); setEditTopic(null) }}
+                          title="Manage resources"
+                          className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border border-blue-100">
+                          <LinkIcon size={13} />
+                        </button>
+                        <button
+                          onClick={() => handleEditTopic(topic.id)}
+                          title="Edit topic"
+                          className="p-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+                          <Edit2 size={13} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(topic.id, topic.title)}
+                          title="Delete topic"
+                          className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors border border-red-100">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

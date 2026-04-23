@@ -356,9 +356,78 @@ export default function LearningRoomPage() {
                   />
                 ) : (
                   <div className="prose prose-lg max-w-none">
-                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-base">
-                      {lessons[currentLesson]?.content}
-                    </p>
+                    {/* Simple markdown rendering for students */}
+                    {lessons[currentLesson]?.content?.split('\n').map((line, idx) => {
+                      // Headings
+                      if (line.startsWith('# ')) {
+                        return <h1 key={idx} className="text-3xl font-bold text-gray-900 mt-8 mb-4">{line.replace('# ', '')}</h1>
+                      }
+                      if (line.startsWith('## ')) {
+                        return <h2 key={idx} className="text-2xl font-bold text-gray-800 mt-6 mb-3">{line.replace('## ', '')}</h2>
+                      }
+                      if (line.startsWith('### ')) {
+                        return <h3 key={idx} className="text-xl font-bold text-gray-800 mt-4 mb-2">{line.replace('### ', '')}</h3>
+                      }
+                      
+                      // Images/Diagrams
+                      const imgMatch = line.match(/^!\[(.*)\]\((.*)\)$/)
+                      if (imgMatch) {
+                        const altText = imgMatch[1]
+                        const imgSrc = imgMatch[2]
+                        return (
+                          <div key={idx} className="my-6">
+                            <img 
+                              src={imgSrc} 
+                              alt={altText}
+                              className="w-full max-w-2xl mx-auto rounded-xl shadow-lg border border-gray-200"
+                              onError={(e) => {
+                                e.target.style.display = 'none'
+                                e.target.nextSibling.style.display = 'block'
+                              }}
+                            />
+                            <div className="hidden my-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+                              <p className="text-sm text-yellow-800">📸 Image could not be loaded</p>
+                              <p className="text-xs text-yellow-600 mt-1">{altText}</p>
+                            </div>
+                            {altText && (
+                              <p className="text-sm text-gray-600 text-center mt-2 italic">{altText}</p>
+                            )}
+                          </div>
+                        )
+                      }
+                      
+                      // Empty lines
+                      if (line.trim() === '') {
+                        return <div key={idx} className="h-4"></div>
+                      }
+                      
+                      // Bullet points
+                      if (line.startsWith('- ') || line.startsWith('* ')) {
+                        const content = line.replace(/^[-*] /, '')
+                        return (
+                          <li key={idx} className="ml-6 text-gray-700 mb-2">
+                            {content}
+                          </li>
+                        )
+                      }
+                      
+                      // Numbered lists
+                      if (/^\d+\.\s/.test(line)) {
+                        const content = line.replace(/^\d+\.\s/, '')
+                        return (
+                          <li key={idx} className="ml-6 text-gray-700 mb-2 list-decimal">
+                            {content}
+                          </li>
+                        )
+                      }
+                      
+                      // Regular paragraphs
+                      return (
+                        <p key={idx} className="text-gray-700 leading-relaxed mb-4">
+                          {line}
+                        </p>
+                      )
+                    })}
                   </div>
                 )}
                 
