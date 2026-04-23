@@ -354,21 +354,26 @@ function LessonEditorContent() {
     try {
       const formData = new FormData()
       formData.append('file', imageFile)
-      formData.append('title', imageDescription || 'Lesson Diagram')
-      formData.append('subject_name', 'Mathematics')
-      formData.append('level', 'other')
-      formData.append('doc_type', 'notes')
-      formData.append('year', String(new Date().getFullYear()))
-      formData.append('description', 'Diagram for lesson content')
       
-      const { data } = await documentsApi.uploadAdmin(formData)
+      console.log('Uploading image...', imageFile.name)
+      const { data } = await documentsApi.uploadImage(formData)
+      console.log('Upload response:', data)
       
       // Use the uploaded file URL
-      const fileUrl = data.file_url || data.url
+      const fileUrl = data.url || data.file_url
+      
+      if (!fileUrl) {
+        console.error('No URL in response:', data)
+        toast.error('Upload succeeded but no URL returned. Check console.')
+        return
+      }
+      
       setImageUrl(fileUrl)
       toast.success('Image uploaded successfully!')
     } catch (err) {
-      toast.error(err?.response?.data?.error || 'Failed to upload image.')
+      console.error('Upload error:', err)
+      console.error('Error response:', err?.response?.data)
+      toast.error(err?.response?.data?.error || err?.response?.data?.message || 'Failed to upload image.')
     } finally {
       setUploadingImage(false)
     }

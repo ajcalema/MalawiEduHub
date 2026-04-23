@@ -66,7 +66,14 @@ export const documentsApi = {
   upload:   (formData) => api.post('/documents/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
-  uploadAdmin:   (formData, onProgress) => api.post('/documents/upload', formData, {
+  uploadAdmin:   (formData, onProgress) => api.post('/documents/admin/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: onProgress ? (progressEvent) => {
+      const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+      onProgress(percentCompleted)
+    } : undefined,
+  }),
+  uploadImage:   (formData, onProgress) => api.post('/documents/admin/upload-image', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     onUploadProgress: onProgress ? (progressEvent) => {
       const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
