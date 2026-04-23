@@ -555,9 +555,10 @@ router.post('/quizzes/:quizId/attempt', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Quiz not found.' })
     }
 
-    // Calculate score
+    // Calculate score first
     let totalPoints = 0
     let earnedPoints = 0
+    const answerResults = []
 
     for (const answer of answers) {
       const questionResult = await query(
@@ -574,22 +575,23 @@ router.post('/quizzes/:quizId/attempt', requireAuth, async (req, res) => {
           [answer.question_id, answer.answer_text]
         )
         
-        if (correctAnswerResult.rows[0].correct_count > 0) {
+        const isCorrect = correctAnswerResult.rows[0].correct_count > 0
+        if (isCorrect) {
           earnedPoints += questionResult.rows[0].points
         }
 
-        // Save attempt answer
-        await query(
-          `INSERT INTO quiz_attempt_answers (attempt_id, question_id, answer_text, is_correct)
-           VALUES ($1, $2, $3, $4)`,
-          ['TEMP', answer.question_id, answer.answer_text, correctAnswerResult.rows[0].correct_count > 0]
-        )
+        // Store answer result for later insertion
+        answerResults.push({
+          question_id: answer.question_id,
+          answer_text: answer.answer_text,
+          is_correct: isCorrect
+        })
       }
     }
 
     const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0
 
-    // Create attempt
+    // Create attempt FIRST
     const attemptResult = await query(
       `INSERT INTO quiz_attempts (quiz_id, user_id, score, total_points, earned_points, started_at, completed_at)
        VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING *`,
@@ -598,11 +600,12 @@ router.post('/quizzes/:quizId/attempt', requireAuth, async (req, res) => {
 
     const attemptId = attemptResult.rows[0].id
 
-    // Update attempt answers with correct attempt_id
-    for (const answer of answers) {
+    // Now save all attempt answers with the correct attempt_id
+    for (const answerResult of answerResults) {
       await query(
-        `UPDATE quiz_attempt_answers SET attempt_id = $1 WHERE attempt_id = 'TEMP' AND question_id = $2`,
-        [attemptId, answer.question_id]
+        `INSERT INTO quiz_attempt_answers (attempt_id, question_id, answer_text, is_correct)
+         VALUES ($1, $2, $3, $4)`,
+        [attemptId, answerResult.question_id, answerResult.answer_text, answerResult.is_correct]
       )
     }
 
