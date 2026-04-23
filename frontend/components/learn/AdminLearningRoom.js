@@ -342,7 +342,7 @@ function LessonForm({ topicId, initial, onSave, onCancel }) {
 }
 
 // ── Quiz form (create / edit with questions) ────────────────
-function QuizForm({ topicId, initial, onSave, onCancel }) {
+function QuizForm({ topicId, initial, onSave, onCancel, showQuestionsOnly = false }) {
   const [form, setForm] = useState(
     initial || { topic_id: topicId, title: '', description: '', passing_score: 70, time_limit_minutes: null, is_active: true }
   )
@@ -511,13 +511,15 @@ function QuizForm({ topicId, initial, onSave, onCancel }) {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-      <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-        <HelpCircle size={15} className="text-purple-600" />
-        {initial?.id ? 'Edit Quiz' : 'Create New Quiz'}
-      </h3>
-      
-      {/* Quiz Settings */}
-      <div className="mb-6 p-4 bg-purple-50 rounded-xl border border-purple-100">
+      {!showQuestionsOnly ? (
+        <>
+          <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <HelpCircle size={15} className="text-purple-600" />
+            {initial?.id ? 'Edit Quiz' : 'Create New Quiz'}
+          </h3>
+          
+          {/* Quiz Settings */}
+          <div className="mb-6 p-4 bg-purple-50 rounded-xl border border-purple-100">
         <h4 className="text-xs font-semibold text-purple-900 uppercase tracking-wider mb-3">Quiz Settings</h4>
         <div className="space-y-3">
           <div>
@@ -562,6 +564,15 @@ function QuizForm({ topicId, initial, onSave, onCancel }) {
           {initial?.id ? 'Save Quiz' : 'Create Quiz'}
         </button>
       </div>
+        </>
+      ) : (
+        <>
+          <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <ListChecks size={15} className="text-purple-600" />
+            Manage Questions: {initial?.title}
+          </h3>
+        </>
+      )}
       
       {/* Helper message for new quizzes */}
       {!initial?.id && (
