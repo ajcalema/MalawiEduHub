@@ -20,9 +20,13 @@ const upload = multer({
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
     ];
     if (allowed.includes(file.mimetype)) return cb(null, true);
-    cb(new Error('Only PDF, DOCX, and PPTX files are allowed.'));
+    cb(new Error('Only PDF, DOCX, PPTX, and image files (JPG, PNG, GIF, WebP) are allowed.'));
   },
 });
 

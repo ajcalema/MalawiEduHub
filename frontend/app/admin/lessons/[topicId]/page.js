@@ -1032,10 +1032,10 @@ There are two main types of cells:
                     <label className="text-xs font-semibold text-gray-700 block mb-2">Select Image File</label>
                     <input 
                       type="file" 
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
                       onChange={e => setImageFile(e.target.files[0])}
                       className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100" />
-                    <p className="text-xs text-gray-400 mt-1">Supports: JPG, PNG, GIF, WebP (max 5MB)</p>
+                    <p className="text-xs text-gray-400 mt-1">Supports: JPG, PNG, GIF, WebP (max 20MB)</p>
                   </div>
                   
                   <button 
