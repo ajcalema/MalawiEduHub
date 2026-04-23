@@ -484,9 +484,11 @@ export default function LearningRoomPage() {
                       )}
                     </div>
                   </div>
-                  <button className="px-4 py-2 text-xs font-semibold text-white bg-purple-500 rounded-xl hover:bg-purple-400 transition-all">
+                  <Link 
+                    href={`/learn/${classId}/${subjectId}/${topicId}/quiz/${quiz.id}`}
+                    className="px-4 py-2 text-xs font-semibold text-white bg-purple-500 rounded-xl hover:bg-purple-400 transition-all no-underline">
                     Start Quiz
-                  </button>
+                  </Link>
                 </div>
               </div>
             ))}

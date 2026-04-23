@@ -483,6 +483,33 @@ router.get('/quizzes/:quizId', requireAuth, async (req, res) => {
   }
 })
 
+// GET quiz questions only (student view)
+router.get('/quizzes/:quizId/questions', requireAuth, async (req, res) => {
+  try {
+    const questionsResult = await query(
+      `SELECT qq.id, qq.question, qq.question_type, qq.points, qq.sort_order,
+              json_agg(
+                json_build_object(
+                  'id', qa.id,
+                  'answer_text', qa.answer_text,
+                  'sort_order', qa.sort_order
+                ) ORDER BY qa.sort_order
+              ) as answers
+       FROM quiz_questions qq
+       LEFT JOIN quiz_answers qa ON qq.id = qa.question_id
+       WHERE qq.quiz_id = $1
+       GROUP BY qq.id, qq.question, qq.question_type, qq.points, qq.sort_order
+       ORDER BY qq.sort_order`,
+      [req.params.quizId]
+    )
+
+    res.json(questionsResult.rows)
+  } catch (err) {
+    console.error('Error fetching questions:', err)
+    res.status(500).json({ error: 'Failed to fetch questions.' })
+  }
+})
+
 // SUBMIT a quiz attempt
 router.post('/quizzes/:quizId/attempt', requireAuth, async (req, res) => {
   try {

@@ -163,5 +163,7 @@ export const lessonsApi = {
   // Student - Quizzes
   getQuizzes:          (topicId)                    => api.get(`/lessons/topics/${topicId}/quizzes`),
   getQuiz:             (quizId)                     => api.get(`/lessons/quizzes/${quizId}`),
+  getQuizQuestions:    (quizId)                     => api.get(`/lessons/quizzes/${quizId}/questions`),
   submitQuiz:          (quizId, data)               => api.post(`/lessons/quizzes/${quizId}/attempt`, data),
+  getQuizAttempts:     (quizId)                     => api.get(`/lessons/quizzes/${quizId}/attempts`),
 }
