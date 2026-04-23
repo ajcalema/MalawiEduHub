@@ -444,8 +444,12 @@ function QuizForm({ topicId, initial, onSave, onCancel, showQuestionsOnly = fals
     }
     
     try {
-      // Create the question
-      const { data } = await lessonsApi.adminCreateQuestion(initial.id, newQuestion)
+      // Create the question - map question_text to question for backend
+      const { data } = await lessonsApi.adminCreateQuestion(initial.id, {
+        question: newQuestion.question_text,
+        question_type: newQuestion.question_type,
+        points: newQuestion.points
+      })
       const questionId = data.id
       
       // If multiple choice, add the answers

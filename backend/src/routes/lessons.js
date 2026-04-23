@@ -265,6 +265,34 @@ router.delete('/admin/quizzes/:id', requireAuth, requireAdmin, async (req, res) 
 // ADMIN — QUIZ QUESTIONS
 // ═══════════════════════════════════════════════════
 
+// GET questions for a quiz (admin view with is_correct)
+router.get('/admin/quizzes/:quizId/questions', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const questionsResult = await query(
+      `SELECT qq.id, qq.question as question_text, qq.question_type, qq.points, qq.sort_order,
+              json_agg(
+                json_build_object(
+                  'id', qa.id,
+                  'answer_text', qa.answer_text,
+                  'is_correct', qa.is_correct,
+                  'sort_order', qa.sort_order
+                ) ORDER BY qa.sort_order
+              ) FILTER (WHERE qa.id IS NOT NULL) as answers
+       FROM quiz_questions qq
+       LEFT JOIN quiz_answers qa ON qq.id = qa.question_id
+       WHERE qq.quiz_id = $1
+       GROUP BY qq.id, qq.question, qq.question_type, qq.points, qq.sort_order
+       ORDER BY qq.sort_order`,
+      [req.params.quizId]
+    )
+
+    res.json(questionsResult.rows)
+  } catch (err) {
+    console.error('Error fetching admin questions:', err)
+    res.status(500).json({ error: 'Failed to fetch questions.' })
+  }
+})
+
 // CREATE a question
 router.post('/admin/quizzes/:quizId/questions', requireAuth, requireAdmin, async (req, res) => {
   try {
