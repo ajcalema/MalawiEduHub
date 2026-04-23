@@ -400,18 +400,13 @@ function QuizForm({ topicId, initial, onSave, onCancel, showQuestionsOnly = fals
       if (initial?.id) {
         await lessonsApi.adminUpdateQuiz(initial.id, form)
         toast.success('Quiz updated.')
+        onSave()
       } else {
         const { data } = await lessonsApi.adminCreateQuiz(form)
-        toast.success('Quiz created! Now add questions below.')
-        // Update the initial ID so the questions section appears
-        if (onSave && onSave.onCreated) {
-          onSave.onCreated(data.id)
-        }
-        // Show the question form automatically
-        setShowQuestionForm(true)
-        return
+        toast.success('Quiz created! Now add questions.')
+        // Call onSave with the new quiz ID so parent can reload list
+        onSave(data.id)
       }
-      onSave()
     } catch (err) {
       toast.error(err?.response?.data?.error || 'Failed to save quiz.')
     } finally { setSaving(false) }
@@ -1263,22 +1258,26 @@ export default function TabLearningRoom() {
                   <QuizForm
                     topicId={manageTopic.id}
                     initial={editQuiz}
-                    onSave={{
-                      redirect: (quizId) => { 
-                        // After creating, reload quizzes and set as editQuiz
-                        loadQuizzes(manageTopic.id).then(() => {
-                          // Find the newly created quiz and set it
+                    onSave={(quizId) => { 
+                      // Reload the quiz list
+                      loadQuizzes(manageTopic.id).then(() => {
+                        // If a new quiz was created (quizId provided), enter question management mode
+                        if (quizId) {
+                          // Wait a moment for state to update, then find and set the new quiz
                           setTimeout(() => {
-                            const updatedQuizzes = quizzes.find(q => q.id === quizId) 
-                              ? quizzes 
-                              : []
-                            const newQuiz = updatedQuizzes.find(q => q.id === quizId)
+                            const newQuiz = quizzes.find(q => q.id === quizId)
                             if (newQuiz) {
-                              setEditQuiz(newQuiz)
+                              setManageQuizQuestions(newQuiz)
+                              setEditQuiz(null)
+                              setShowQuizForm(false)
                             }
-                          }, 500)
-                        })
-                      }
+                          }, 300)
+                        } else {
+                          // Just an update, close the form
+                          setShowQuizForm(false)
+                          setEditQuiz(null)
+                        }
+                      })
                     }}
                     onCancel={() => { setShowQuizForm(false); setEditQuiz(null) }}
                   />
