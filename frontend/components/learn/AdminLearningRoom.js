@@ -929,6 +929,7 @@ export default function TabLearningRoom() {
   
   const [showQuizForm, setShowQuizForm] = useState(false)
   const [editQuiz, setEditQuiz] = useState(null)
+  const [manageQuizQuestions, setManageQuizQuestions] = useState(null) // Quiz ID for managing questions
 
   const loadAll = async () => {
     setLoading(true)
@@ -1269,8 +1270,20 @@ export default function TabLearningRoom() {
                 </div>
               )}
               
+              {/* Question Management for Selected Quiz */}
+              {manageQuizQuestions && (
+                <div className="mb-4">
+                  <QuizForm
+                    topicId={manageTopic.id}
+                    initial={manageQuizQuestions}
+                    showQuestionsOnly={true}
+                    onCancel={() => setManageQuizQuestions(null)}
+                  />
+                </div>
+              )}
+              
               {/* Add quiz button */}
-              {!showQuizForm && !editQuiz && (
+              {!showQuizForm && !editQuiz && !manageQuizQuestions && (
                 <button onClick={() => setShowQuizForm(true)}
                   className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white
                     bg-purple-500 rounded-xl hover:bg-purple-400 transition-all mb-4">
@@ -1306,7 +1319,17 @@ export default function TabLearningRoom() {
                       </div>
                       <div className="flex gap-1">
                         <button
-                          onClick={() => { setEditQuiz(quiz); setShowQuizForm(false) }}
+                          onClick={() => {
+                            setManageQuizQuestions(quiz)
+                            setEditQuiz(null)
+                            setShowQuizForm(false)
+                          }}
+                          title="Add/Edit questions"
+                          className="p-1.5 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors border border-purple-100">
+                          <ListChecks size={13} />
+                        </button>
+                        <button
+                          onClick={() => { setEditQuiz(quiz); setShowQuizForm(false); setManageQuizQuestions(null) }}
                           title="Edit quiz"
                           className="p-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
                           <Edit2 size={13} />
