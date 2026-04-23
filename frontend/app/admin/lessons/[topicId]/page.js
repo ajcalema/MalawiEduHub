@@ -7,7 +7,7 @@ import { lessonsApi, documentsApi } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import {
   ArrowLeft, Save, BookOpen, FileText, Video, ListChecks,
-  Loader2, Upload, X, ChevronDown, Layers, Eye, Copy, Trash2
+  Loader2, Upload, X, ChevronDown, Layers, Eye, Copy, Trash2, Image
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -90,6 +90,11 @@ function LessonEditorContent() {
   const [lastSaved, setLastSaved] = useState(null) // Timestamp of last auto-save
   const [isDraft, setIsDraft] = useState(false) // Whether current content is from draft
   const [showPreview, setShowPreview] = useState(false) // Preview modal
+  const [showImageUpload, setShowImageUpload] = useState(false) // Image upload modal
+  const [imageUrl, setImageUrl] = useState('') // Image URL for diagram
+  const [imageDescription, setImageDescription] = useState('') // Alt text for image
+  const [uploadingImage, setUploadingImage] = useState(false) // Image upload in progress
+  const [imageFile, setImageFile] = useState(null) // Image file to upload
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -319,6 +324,56 @@ function LessonEditorContent() {
     }
   }
 
+  // Insert image/diagram into lesson content
+  const handleInsertImage = () => {
+    if (!imageUrl.trim()) {
+      toast.error('Please provide an image URL or upload an image.')
+      return
+    }
+    
+    const imageMarkdown = `![${imageDescription || 'Diagram'}](${imageUrl})`
+    const content = form.content || ''
+    
+    // Insert at cursor position or at the end
+    set('content', content + '\n\n' + imageMarkdown + '\n')
+    setShowImageUpload(false)
+    setImageUrl('')
+    setImageDescription('')
+    setImageFile(null)
+    toast.success('Diagram added to lesson!')
+  }
+
+  // Upload image file
+  const handleUploadImage = async () => {
+    if (!imageFile) {
+      toast.error('Please select an image file.')
+      return
+    }
+    
+    setUploadingImage(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', imageFile)
+      formData.append('title', imageDescription || 'Lesson Diagram')
+      formData.append('subject_name', 'Mathematics')
+      formData.append('level', 'other')
+      formData.append('doc_type', 'notes')
+      formData.append('year', String(new Date().getFullYear()))
+      formData.append('description', 'Diagram for lesson content')
+      
+      const { data } = await documentsApi.uploadAdmin(formData)
+      
+      // Use the uploaded file URL
+      const fileUrl = data.file_url || data.url
+      setImageUrl(fileUrl)
+      toast.success('Image uploaded successfully!')
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'Failed to upload image.')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -435,10 +490,18 @@ function LessonEditorContent() {
 
             {/* Teaching Notes */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <BookOpen size={16} className="text-green-600" />
-                Teaching Notes (Lesson Content)
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                  <BookOpen size={16} className="text-green-600" />
+                  Teaching Notes (Lesson Content)
+                </h2>
+                <button
+                  onClick={() => setShowImageUpload(true)}
+                  className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors">
+                  <Image size={14} />
+                  Add Diagram
+                </button>
+              </div>
               <p className="text-xs text-gray-500 mb-3">
                 This is what students will read and learn from. Write your complete lesson content here.
               </p>
@@ -919,6 +982,152 @@ There are two main types of cells:
                   <p className="text-xs text-gray-500 break-all">{form.video_url}</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Upload Modal */}
+      {showImageUpload && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-100 p-6 flex items-center justify-between rounded-t-2xl">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Image size={20} className="text-purple-600" />
+                Add Diagram to Lesson
+              </h2>
+              <button 
+                onClick={() => {
+                  setShowImageUpload(false)
+                  setImageUrl('')
+                  setImageDescription('')
+                  setImageFile(null)
+                }}
+                className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Option 1: Upload Image File */}
+              <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-5 border border-purple-100">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <Upload size={14} className="text-purple-600" />
+                  Option 1: Upload Image
+                </h3>
+                
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700 block mb-2">Image Description (alt text)</label>
+                    <input 
+                      value={imageDescription} 
+                      onChange={e => setImageDescription(e.target.value)}
+                      placeholder="e.g. Plant Cell Structure Diagram"
+                      className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white focus:outline-none focus:border-purple-400" />
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700 block mb-2">Select Image File</label>
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={e => setImageFile(e.target.files[0])}
+                      className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100" />
+                    <p className="text-xs text-gray-400 mt-1">Supports: JPG, PNG, GIF, WebP (max 5MB)</p>
+                  </div>
+                  
+                  <button 
+                    onClick={handleUploadImage}
+                    disabled={uploadingImage || !imageFile}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-purple-500 rounded-lg hover:bg-purple-400 disabled:opacity-50 disabled:cursor-not-allowed">
+                    {uploadingImage ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={14} />
+                        Upload Image
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200"></div>
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-white px-3 text-gray-500">OR</span>
+                </div>
+              </div>
+
+              {/* Option 2: Image URL */}
+              <div className="bg-gradient-to-br from-blue-50 to-green-50 rounded-xl p-5 border border-blue-100">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <Image size={14} className="text-blue-600" />
+                  Option 2: Use Image URL
+                </h3>
+                
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700 block mb-2">Image Description (alt text)</label>
+                    <input 
+                      value={imageDescription} 
+                      onChange={e => setImageDescription(e.target.value)}
+                      placeholder="e.g. Cell Biology Diagram"
+                      className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white focus:outline-none focus:border-blue-400" />
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700 block mb-2">Image URL</label>
+                    <input 
+                      value={imageUrl} 
+                      onChange={e => setImageUrl(e.target.value)}
+                      placeholder="https://example.com/diagram.jpg"
+                      className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white focus:outline-none focus:border-blue-400" />
+                    <p className="text-xs text-gray-400 mt-1">Paste a direct link to an image (JPG, PNG, GIF, etc.)</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Preview */}
+              {(imageUrl || imageDescription) && (
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <p className="text-xs font-semibold text-gray-700 mb-2">Preview:</p>
+                  <code className="text-xs text-gray-600 bg-white px-3 py-2 rounded-lg block">
+                    ![${imageDescription || 'Diagram'}](${imageUrl || 'image-url'})
+                  </code>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="sticky bottom-0 bg-white border-t border-gray-100 p-6 rounded-b-2xl">
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => {
+                    setShowImageUpload(false)
+                    setImageUrl('')
+                    setImageDescription('')
+                    setImageFile(null)
+                  }}
+                  className="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleInsertImage}
+                  disabled={!imageUrl.trim()}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-purple-500 rounded-lg hover:bg-purple-400 disabled:opacity-50 disabled:cursor-not-allowed">
+                  <Image size={14} />
+                  Insert Diagram
+                </button>
+              </div>
             </div>
           </div>
         </div>
