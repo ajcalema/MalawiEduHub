@@ -28,6 +28,8 @@ export default function QuizPage() {
   const [timerActive, setTimerActive] = useState(false)
 
   useEffect(() => {
+    // Wait for auth to finish loading
+    if (user === undefined) return
     if (user === null) {
       router.push('/auth/login')
       return
