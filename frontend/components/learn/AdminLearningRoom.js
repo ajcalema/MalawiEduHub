@@ -423,10 +423,46 @@ function QuizForm({ topicId, initial, onSave, onCancel }) {
       toast.error('Please save the quiz first before adding questions.')
       return
     }
+    
+    // Validate multiple choice answers
+    if (newQuestion.question_type === 'multiple_choice') {
+      if (answers.length < 2) {
+        toast.error('Multiple choice questions need at least 2 answer options.')
+        return
+      }
+      if (!answers.some(a => a.answer_text.trim())) {
+        toast.error('Please fill in at least one answer option.')
+        return
+      }
+      if (!answers.some(a => a.is_correct)) {
+        toast.error('Please mark one answer as correct.')
+        return
+      }
+    }
+    
     try {
+      // Create the question
       const { data } = await lessonsApi.adminCreateQuestion(initial.id, newQuestion)
-      toast.success('Question added.')
+      const questionId = data.id
+      
+      // If multiple choice, add the answers
+      if (newQuestion.question_type === 'multiple_choice' && answers.length > 0) {
+        for (const answer of answers) {
+          if (answer.answer_text.trim()) {
+            await lessonsApi.adminCreateAnswer(questionId, {
+              answer_text: answer.answer_text.trim(),
+              is_correct: answer.is_correct,
+              sort_order: answers.indexOf(answer)
+            })
+          }
+        }
+        toast.success('Question with answers added.')
+      } else {
+        toast.success('Question added.')
+      }
+      
       setNewQuestion({ question_text: '', question_type: 'multiple_choice', points: 1 })
+      setAnswers([])
       setShowQuestionForm(false)
       setEditQuestion(null)
       loadQuestions() // Reload questions list
@@ -560,8 +596,78 @@ function QuizForm({ topicId, initial, onSave, onCancel }) {
                   </select>
                   <input type="number" value={newQuestion.points} onChange={e => setNewQuestion({...newQuestion, points: parseInt(e.target.value) || 1})}
                     min="1"
-                    className="px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white text-center" />
+                    className="px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-white text-center"
+                    placeholder="Points" />
                 </div>
+                
+                {/* Answers for Multiple Choice */}
+                {newQuestion.question_type === 'multiple_choice' && (
+                  <div className="bg-white rounded-lg p-3 border border-purple-100">
+                    <p className="text-xs font-semibold text-purple-900 mb-2">Answers (click ✓ for correct answer)</p>
+                    <div className="space-y-2 mb-3">
+                      {answers.map((answer, idx) => (
+                        <div key={idx} className={`flex items-center gap-2 p-2 rounded-lg border ${
+                          answer.is_correct ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-100'
+                        }`}>
+                          <input 
+                            value={answer.answer_text} 
+                            onChange={e => {
+                              const updated = [...answers]
+                              updated[idx] = { ...updated[idx], answer_text: e.target.value }
+                              setAnswers(updated)
+                            }}
+                            placeholder={`Option ${idx + 1}`}
+                            className="flex-1 px-2 py-1.5 text-xs rounded border border-gray-200 bg-white" />
+                          <button 
+                            onClick={() => {
+                              const updated = answers.map((a, i) => ({
+                                ...a,
+                                is_correct: i === idx
+                              }))
+                              setAnswers(updated)
+                            }}
+                            className={`p-1.5 rounded-lg transition-all ${
+                              answer.is_correct 
+                                ? 'bg-green-500 text-white' 
+                                : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
+                            }`}>
+                            <Check size={12} />
+                          </button>
+                          <button 
+                            onClick={() => setAnswers(answers.filter((_, i) => i !== idx))}
+                            className="p-1.5 rounded-lg bg-red-100 text-red-500 hover:bg-red-200">
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <button 
+                      onClick={() => setAnswers([...answers, { answer_text: '', is_correct: answers.length === 0 }])}
+                      className="w-full px-2 py-1.5 text-xs font-semibold text-purple-700 bg-purple-50 rounded-lg hover:bg-purple-100 border border-purple-200">
+                      + Add Answer Option
+                    </button>
+                    {answers.length > 0 && !answers.some(a => a.is_correct) && (
+                      <p className="text-[10px] text-orange-600 mt-2">⚠️ Please mark one answer as correct</p>
+                    )}
+                  </div>
+                )}
+                
+                {/* True/False Info */}
+                {newQuestion.question_type === 'true_false' && (
+                  <div className="bg-white rounded-lg p-3 border border-purple-100">
+                    <p className="text-xs text-gray-600">✓ Students will see True/False options</p>
+                    <p className="text-[10px] text-gray-400 mt-1">First option (True) will be marked as correct by default</p>
+                  </div>
+                )}
+                
+                {/* Short Answer Info */}
+                {newQuestion.question_type === 'short_answer' && (
+                  <div className="bg-white rounded-lg p-3 border border-purple-100">
+                    <p className="text-xs text-gray-600">✏️ Students will type their answer</p>
+                    <p className="text-[10px] text-gray-400 mt-1">Manual grading will be required</p>
+                  </div>
+                )}
+                
                 <button onClick={handleAddQuestion}
                   className="w-full px-3 py-2.5 text-xs font-semibold text-white bg-purple-500 rounded-lg hover:bg-purple-400">
                   ✓ Add Question
