@@ -370,7 +370,7 @@ export default function LearningRoomPage() {
                       }
                       
                       // Images/Diagrams
-                      const imgMatch = line.match(/^!\[(.*)\]\((.*)\)$/)
+                      const imgMatch = line.trim().match(/^!\[(.*)\]\((.*)\)$/)
                       if (imgMatch) {
                         const altText = imgMatch[1]
                         const imgSrc = imgMatch[2]
@@ -390,7 +390,7 @@ export default function LearningRoomPage() {
                               <p className="text-xs text-yellow-600 mt-1">{altText}</p>
                             </div>
                             {altText && (
-                              <p className="text-sm text-gray-600 text-center mt-2 italic">{altText}</p>
+                              <p className="text-sm text-gray-600 text-center mt-2 italic">Figure: {altText}</p>
                             )}
                           </div>
                         )

@@ -368,8 +368,18 @@ function LessonEditorContent() {
         return
       }
       
-      setImageUrl(fileUrl)
-      toast.success('Image uploaded successfully!')
+      // Auto-insert the image into content
+      const description = imageDescription || imageFile.name.replace(/\.[^/.]+$/, '') || 'Diagram'
+      const imageMarkdown = `![${description}](${fileUrl})`
+      const content = form.content || ''
+      set('content', content + '\n\n' + imageMarkdown + '\n')
+      
+      // Close modal and reset
+      setShowImageUpload(false)
+      setImageUrl('')
+      setImageDescription('')
+      setImageFile(null)
+      toast.success('Image uploaded and inserted!')
     } catch (err) {
       console.error('Upload error:', err)
       console.error('Error response:', err?.response?.data)
