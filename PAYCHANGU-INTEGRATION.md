@@ -38,7 +38,8 @@ PAYCHANGU_PUBLIC_KEY=pub-test-sHrctUFpd92KlxxqekxcZotoBgDpJuvc
 
 1. ✅ Live keys added to `backend/.env` (safe - not committed to Git)
 2. ✅ `render.yaml` updated with placeholders (safe for Git)
-3. ❌ **YOU MUST** set live keys in Render Dashboard manually
+3. ✅ Webhook signature verification implemented
+4. ❌ **YOU MUST** set live keys in Render Dashboard manually
 
 ### How to Set Live Keys in Render (DO THIS NOW):
 
@@ -57,6 +58,7 @@ PAYCHANGU_PUBLIC_KEY=pub-test-sHrctUFpd92KlxxqekxcZotoBgDpJuvc
    |-----|-------|
    | `PAYCHANGU_SECRET_KEY` | `sec-live-90bvc6gPtq7yKl62UxzAfjGW8mopuuer` |
    | `PAYCHANGU_PUBLIC_KEY` | `pub-live-FcbcdfUaYaEOsCLtDgUCjv96bG00QNMb` |
+   | `PAYCHANGU_WEBHOOK_SECRET` | Get from Paychangu dashboard |
    
    **⚠️ Important**: 
    - Mark `PAYCHANGU_SECRET_KEY` as **"Encrypted"** (Render does this by default)
@@ -72,6 +74,21 @@ PAYCHANGU_PUBLIC_KEY=pub-test-sHrctUFpd92KlxxqekxcZotoBgDpJuvc
    - Check the **Logs** tab
    - Look for successful startup messages
    - Test an API endpoint to confirm it's working
+
+### How to Get Webhook Secret from Paychangu:
+
+1. Log in to your Paychangu dashboard
+2. Go to **Settings** or **Developer** section
+3. Find **Webhook Settings** or **API Settings**
+4. Copy the **Webhook Secret** or **Signing Secret**
+5. Add it to your Render environment variables as `PAYCHANGU_WEBHOOK_SECRET`
+
+### Configure Webhook URL in Paychangu:
+
+1. In Paychangu dashboard, go to **Webhook Settings**
+2. Add your webhook URL: `https://your-backend-url.onrender.com/api/payments/webhook`
+3. Save the configuration
+4. Paychangu will now send webhook notifications with signature headers
 
 ### Why This Matters:
 
@@ -223,6 +240,7 @@ Required:
 - PAYCHANGU_SECRET_KEY - Your secret key (backend only)
 - PAYCHANGU_PUBLIC_KEY - Your public key (can be in frontend)
 - PAYCHANGU_BASE_URL - https://api.paychangu.com
+- PAYCHANGU_WEBHOOK_SECRET - Webhook signing secret (from Paychangu dashboard)
 - BACKEND_URL - Your backend URL for webhooks
 
 ---
@@ -254,8 +272,9 @@ Required:
 ## Current Status
 
 - Live keys: ✅ Configured and active
+- Webhook secret: ✅ Verification implemented
 - Test keys: Saved for future testing
-- Webhook: ✅ Implemented and ready
+- Webhook: ✅ Implemented with signature verification
 - Payment flow: ✅ Complete
 - Test endpoint: Available in development mode only
 - Ready for production: ✅ YES
@@ -268,7 +287,10 @@ Required:
 2. ✅ ~~Update backend/.env with live keys~~ DONE
 3. ✅ ~~Update render.yaml with live keys~~ DONE
 4. ✅ ~~Push to GitHub~~ DONE
-5. **Deploy to Render** - Service will auto-redeploy
-6. **Test with small amount** (MWK 300 Daily plan)
-7. **Monitor first few live payments**
-8. **Set up payment monitoring/alerts** (optional)
+5. **Get webhook secret from Paychangu dashboard**
+6. **Add webhook secret to Render environment variables**
+7. **Configure webhook URL in Paychangu dashboard**
+8. **Deploy to Render** - Service will auto-redeploy
+9. **Test with small amount** (MWK 300 Daily plan)
+10. **Monitor first few live payments**
+11. **Set up payment monitoring/alerts** (optional)

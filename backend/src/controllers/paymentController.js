@@ -1,4 +1,5 @@
 const axios = require('axios');
+const crypto = require('crypto');
 const { query } = require('../config/db');
 require('dotenv').config();
 
@@ -133,6 +134,30 @@ const initiatePerDownload = async (req, res) => {
 // Paychangu calls this URL when payment status changes
 const paymentWebhook = async (req, res) => {
   try {
+    // Verify webhook signature if secret is configured
+    const webhookSecret = process.env.PAYCHANGU_WEBHOOK_SECRET;
+    if (webhookSecret) {
+      const signature = req.headers['x-paychangu-signature'] || req.headers['x-signature'];
+      
+      if (!signature) {
+        console.error('Webhook signature missing');
+        return res.status(401).json({ error: 'Missing webhook signature' });
+      }
+
+      // Create HMAC signature
+      const rawBody = JSON.stringify(req.body);
+      const expectedSignature = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(rawBody)
+        .digest('hex');
+
+      // Compare signatures
+      if (signature !== expectedSignature) {
+        console.error('Webhook signature verification failed');
+        return res.status(401).json({ error: 'Invalid webhook signature' });
+      }
+    }
+
     const { reference, status, transaction_id } = req.body;
 
     // Always respond 200 to Paychangu immediately
@@ -143,7 +168,16 @@ const paymentWebhook = async (req, res) => {
       [reference]
     );
     const payment = payResult.rows[0];
-    if (!payment) return;
+    if (!payment) {
+      console.log('Payment not found for reference:', reference);
+      return;
+    }
+
+    // Prevent processing already completed payments
+    if (payment.status === 'completed') {
+      console.log('Payment already processed:', payment.id);
+      return;
+    }
 
     if (status === 'success' || status === 'SUCCESSFUL') {
       // Mark payment completed
@@ -160,6 +194,11 @@ const paymentWebhook = async (req, res) => {
           p => PLAN_PRICES[p] === parseFloat(payment.amount_mwk)
         );
 
+        if (!plan) {
+          console.error('Invalid plan amount:', payment.amount_mwk);
+          return;
+        }
+
         const subResult = await query(
           `INSERT INTO subscriptions
              (user_id, plan, status, starts_at, expires_at, payment_id)
@@ -172,6 +211,10 @@ const paymentWebhook = async (req, res) => {
           `UPDATE payments SET subscription_id = $1 WHERE id = $2`,
           [subResult.rows[0].id, payment.id]
         );
+
+        console.log('✅ Subscription created for payment:', payment.id);
+      } else {
+        console.log('✅ Per-download payment completed:', payment.id);
       }
     } else if (status === 'failed' || status === 'FAILED') {
       await query(
@@ -179,6 +222,7 @@ const paymentWebhook = async (req, res) => {
          failure_reason = $1 WHERE id = $2`,
         [req.body.failure_reason || 'Payment failed', payment.id]
       );
+      console.log('❌ Payment failed:', payment.id, req.body.failure_reason);
     }
   } catch (err) {
     console.error('webhook error:', err);
