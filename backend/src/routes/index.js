@@ -78,6 +78,12 @@ payRouter.post('/webhook',           paymentWebhook);           // no auth — c
 payRouter.get('/status/:id',         requireAuth, checkPaymentStatus);
 payRouter.get('/admin/revenue',      requireAuth, requireAdmin, getRevenueSummary);
 
+// Test endpoint - simulate payment success (only in development)
+const { simulatePaymentSuccess } = require('../controllers/paymentController');
+if (process.env.NODE_ENV !== 'production') {
+  payRouter.post('/test/simulate/:paymentId', requireAuth, simulatePaymentSuccess);
+}
+
 module.exports = payRouter;
 
 
