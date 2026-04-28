@@ -17,16 +17,18 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Auto-refresh on 401 TOKEN_EXPIRED
+// Auto-refresh on 401 TOKEN_EXPIRED or missing token
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config
-    if (
+    const isTokenExpired = 
       error.response?.status === 401 &&
-      error.response?.data?.code === 'TOKEN_EXPIRED' &&
+      (error.response?.data?.code === 'TOKEN_EXPIRED' || 
+       error.response?.data?.error?.includes('token')) &&
       !original._retry
-    ) {
+    
+    if (isTokenExpired) {
       original._retry = true
       try {
         const refreshToken = Cookies.get('refreshToken')
@@ -37,12 +39,16 @@ api.interceptors.response.use(
         Cookies.set('refreshToken', data.refreshToken, { expires: 30 })
         original.headers.Authorization = `Bearer ${data.accessToken}`
         return api(original)
-      } catch {
-        // Refresh failed — clear session
+      } catch (refreshError) {
+        // Refresh failed — clear session and redirect to login
+        console.log('Token refresh failed, redirecting to login')
         Cookies.remove('accessToken')
         Cookies.remove('refreshToken')
         Cookies.remove('user')
-        window.location.href = '/auth/login'
+        // Only redirect if not already on login page
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/login')) {
+          window.location.href = '/auth/login'
+        }
       }
     }
     return Promise.reject(error)
