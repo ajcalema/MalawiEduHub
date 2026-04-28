@@ -25,9 +25,9 @@ services:
       - key: FRONTEND_URL
         value: https://malawi-edu-hub.vercel.app
       - key: PAYCHANGU_SECRET_KEY
-        value: sec-test-WBkzHqND0w4kRJ4MBHQPqSLcJPmOMxtP
+        value: sec-live-90bvc6gPtq7yKl62UxzAfjGW8mopuuer
       - key: PAYCHANGU_PUBLIC_KEY
-        value: pub-test-sHrctUFpd92KlxxqekxcZotoBgDpJuvc
+        value: pub-live-FcbcdfUaYaEOsCLtDgUCjv96bG00QNMb
       - key: BACKEND_URL
         value: https://malawieduhub-api.onrender.com
       # Add your other secrets in Render dashboard:

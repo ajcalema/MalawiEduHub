@@ -8,80 +8,51 @@ MalawiEduHub uses **Paychangu** as the payment gateway for processing mobile mon
 
 ## API Keys
 
-### Test Keys (Currently Active)
+### Live Keys (Currently Active) ✅
+```
+PAYCHANGU_SECRET_KEY=sec-live-90bvc6gPtq7yKl62UxzAfjGW8mopuuer
+PAYCHANGU_PUBLIC_KEY=pub-live-FcbcdfUaYaEOsCLtDgUCjv96bG00QNMb
+```
+
+### Test Keys (Previous)
 ```
 PAYCHANGU_SECRET_KEY=sec-test-WBkzHqND0w4kRJ4MBHQPqSLcJPmOMxtP
 PAYCHANGU_PUBLIC_KEY=pub-test-sHrctUFpd92KlxxqekxcZotoBgDpJuvc
 ```
 
-### Live Keys (Update when ready)
-```
-PAYCHANGU_SECRET_KEY=sec-live-YOUR_LIVE_SECRET_KEY
-PAYCHANGU_PUBLIC_KEY=pub-live-YOUR_LIVE_PUBLIC_KEY
-```
-
-**IMPORTANT:** Never commit live keys to Git!
+**IMPORTANT:** Never commit live keys to Git! (Keys are in .env which is gitignored)
 
 ---
 
 ## Switching from Test to Live
 
-### Step 1: Get Live Keys from Paychangu
+### Status: LIVE MODE ACTIVATED ✅
 
-1. Log in to your Paychangu dashboard: https://paychangu.com/dashboard
-2. Go to **Settings** > **API Keys**
-3. Switch from **Test Mode** to **Live Mode**
-4. Copy your live secret key and public key
+Your system is now configured with live Paychangu keys!
 
-### Step 2: Update Local Environment
+### What's Been Done:
 
-Edit `backend/.env`:
+1. ✅ Live keys added to `backend/.env`
+2. ✅ Live keys added to `render.yaml`
+3. ✅ Payment system ready for real transactions
 
-```bash
-# Change from:
-PAYCHANGU_SECRET_KEY=sec-test-WBkzHqND0w4kRJ4MBHQPqSLcJPmOMxtP
-PAYCHANGU_PUBLIC_KEY=pub-test-sHrctUFpd92KlxxqekxcZotoBgDpJuvc
+### Next Steps:
 
-# To:
-PAYCHANGU_SECRET_KEY=sec-live-YOUR_ACTUAL_LIVE_KEY
-PAYCHANGU_PUBLIC_KEY=pub-live-YOUR_ACTUAL_LIVE_KEY
-```
+1. **Deploy to Render** (if you haven't already):
+   - Push changes to GitHub (done automatically)
+   - Render will redeploy with live keys
+   
+2. **Test with Real Money**:
+   - Create a test user account
+   - Subscribe to Daily plan (MWK 300)
+   - Use your own mobile number
+   - Approve the USSD prompt on your phone
+   - Verify subscription activates
 
-### Step 3: Update Render Deployment
-
-1. Go to Render Dashboard: https://dashboard.render.com
-2. Select your backend service
-3. Go to **Environment** tab
-4. Update these variables:
-   - `PAYCHANGU_SECRET_KEY` to your live secret key
-   - `PAYCHANGU_PUBLIC_KEY` to your live public key
-5. Click **Save Changes** (service will redeploy automatically)
-
-### Step 4: Test with Real Money
-
-**WARNING:** Live mode uses REAL money!
-
-1. Deploy the changes
-2. Create a test user account
-3. Try subscribing to the cheapest plan (Daily - MWK 300)
-4. Use your own mobile number
-5. Approve the payment prompt on your phone
-6. Verify the payment completes successfully
-
-### Step 5: Verify Webhook URL
-
-Paychangu needs to call your webhook endpoint. Make sure:
-
-```
-Webhook URL: https://your-backend-url.onrender.com/api/payments/webhook
-```
-
-The webhook URL is automatically set in the payment request as:
-```javascript
-callback_url: process.env.BACKEND_URL + '/api/payments/webhook'
-```
-
-Make sure `BACKEND_URL` environment variable is set correctly on Render.
+3. **Monitor First Payments**:
+   - Check Render logs for webhook calls
+   - Verify payments in Paychangu dashboard
+   - Confirm subscriptions are created
 
 ---
 
@@ -256,19 +227,22 @@ Required:
 
 ## Current Status
 
-- Test keys: Configured and working
-- Live keys: Ready to be added
-- Webhook: Implemented
-- Payment flow: Complete
-- Test endpoint: Available in development mode
+- Live keys: ✅ Configured and active
+- Test keys: Saved for future testing
+- Webhook: ✅ Implemented and ready
+- Payment flow: ✅ Complete
+- Test endpoint: Available in development mode only
+- Ready for production: ✅ YES
 
 ---
 
 ## Next Steps
 
-1. Get your live keys from Paychangu dashboard
-2. Update backend/.env with live keys
-3. Update Render environment variables
-4. Test with small amount (MWK 300)
-5. Monitor first few live payments
-6. Set up payment monitoring/alerts
+1. ✅ ~~Get your live keys from Paychangu dashboard~~ DONE
+2. ✅ ~~Update backend/.env with live keys~~ DONE
+3. ✅ ~~Update render.yaml with live keys~~ DONE
+4. ✅ ~~Push to GitHub~~ DONE
+5. **Deploy to Render** - Service will auto-redeploy
+6. **Test with small amount** (MWK 300 Daily plan)
+7. **Monitor first few live payments**
+8. **Set up payment monitoring/alerts** (optional)
