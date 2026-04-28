@@ -25,11 +25,16 @@ services:
       - key: FRONTEND_URL
         value: https://malawi-edu-hub.vercel.app
       - key: PAYCHANGU_SECRET_KEY
-        value: sec-live-90bvc6gPtq7yKl62UxzAfjGW8mopuuer
+        value: CHANGE_ME_IN_RENDER_DASHBOARD
       - key: PAYCHANGU_PUBLIC_KEY
-        value: pub-live-FcbcdfUaYaEOsCLtDgUCjv96bG00QNMb
+        value: CHANGE_ME_IN_RENDER_DASHBOARD
       - key: BACKEND_URL
         value: https://malawieduhub-api.onrender.com
+      # ⚠️ IMPORTANT: Update these in Render Dashboard:
+      # - PAYCHANGU_SECRET_KEY (your live secret key)
+      # - PAYCHANGU_PUBLIC_KEY (your live public key)
+      # - JWT_SECRET (generate random string)
+      # - JWT_REFRESH_SECRET (generate random string)
       # Add your other secrets in Render dashboard:
       # - AWS_ACCESS_KEY_ID
       # - AWS_SECRET_ACCESS_KEY

@@ -8,11 +8,19 @@ MalawiEduHub uses **Paychangu** as the payment gateway for processing mobile mon
 
 ## API Keys
 
-### Live Keys (Currently Active) ✅
-```
-PAYCHANGU_SECRET_KEY=sec-live-90bvc6gPtq7yKl62UxzAfjGW8mopuuer
-PAYCHANGU_PUBLIC_KEY=pub-live-FcbcdfUaYaEOsCLtDgUCjv96bG00QNMb
-```
+### ⚠️ SECURITY WARNING
+
+**NEVER commit live API keys to GitHub!**
+
+Live keys should ONLY be stored in:
+1. `backend/.env` (local development) - This file is gitignored ✅
+2. Render Dashboard environment variables (production) - Set manually ✅
+
+### Current Status
+
+- **Local (.env)**: ✅ Live keys configured (safe - not committed to Git)
+- **Render Dashboard**: ❌ You need to set these manually (see instructions below)
+- **render.yaml**: ❌ Contains placeholder values only (safe for Git)
 
 ### Test Keys (Previous)
 ```
@@ -20,39 +28,57 @@ PAYCHANGU_SECRET_KEY=sec-test-WBkzHqND0w4kRJ4MBHQPqSLcJPmOMxtP
 PAYCHANGU_PUBLIC_KEY=pub-test-sHrctUFpd92KlxxqekxcZotoBgDpJuvc
 ```
 
-**IMPORTANT:** Never commit live keys to Git! (Keys are in .env which is gitignored)
-
 ---
 
-## Switching from Test to Live
+## Setting Up Live Keys Securely
 
-### Status: LIVE MODE ACTIVATED ✅
-
-Your system is now configured with live Paychangu keys!
+### Status: Local Configuration Done ✅ | Render Setup Required ❌
 
 ### What's Been Done:
 
-1. ✅ Live keys added to `backend/.env`
-2. ✅ Live keys added to `render.yaml`
-3. ✅ Payment system ready for real transactions
+1. ✅ Live keys added to `backend/.env` (safe - not committed to Git)
+2. ✅ `render.yaml` updated with placeholders (safe for Git)
+3. ❌ **YOU MUST** set live keys in Render Dashboard manually
 
-### Next Steps:
+### How to Set Live Keys in Render (DO THIS NOW):
 
-1. **Deploy to Render** (if you haven't already):
-   - Push changes to GitHub (done automatically)
-   - Render will redeploy with live keys
+1. **Go to Render Dashboard**:
+   - Visit: https://dashboard.render.com
+   - Login to your account
+
+2. **Select Your Backend Service**:
+   - Click on `malawieduhub-api` service
+   - Go to **Environment** tab
+
+3. **Add/Update Environment Variables**:
+   Click "Add Environment Variable" and add:
    
-2. **Test with Real Money**:
-   - Create a test user account
-   - Subscribe to Daily plan (MWK 300)
-   - Use your own mobile number
-   - Approve the USSD prompt on your phone
-   - Verify subscription activates
+   | Key | Value |
+   |-----|-------|
+   | `PAYCHANGU_SECRET_KEY` | `sec-live-90bvc6gPtq7yKl62UxzAfjGW8mopuuer` |
+   | `PAYCHANGU_PUBLIC_KEY` | `pub-live-FcbcdfUaYaEOsCLtDgUCjv96bG00QNMb` |
+   
+   **⚠️ Important**: 
+   - Mark `PAYCHANGU_SECRET_KEY` as **"Encrypted"** (Render does this by default)
+   - These values will NOT be visible in Git or logs
+   - Only Render's servers can access them
 
-3. **Monitor First Payments**:
-   - Check Render logs for webhook calls
-   - Verify payments in Paychangu dashboard
-   - Confirm subscriptions are created
+4. **Save & Redeploy**:
+   - Click **Save Changes**
+   - Render will automatically redeploy your service
+   - Wait 2-5 minutes for deployment to complete
+
+5. **Verify Deployment**:
+   - Check the **Logs** tab
+   - Look for successful startup messages
+   - Test an API endpoint to confirm it's working
+
+### Why This Matters:
+
+- ✅ `backend/.env` - Local only, gitignored, safe
+- ✅ Render Dashboard - Encrypted, secure, not in Git
+- ❌ `render.yaml` - Public on GitHub, must use placeholders
+- ❌ GitHub - Anyone can see it, never put keys here
 
 ---
 
