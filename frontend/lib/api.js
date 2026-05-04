@@ -172,6 +172,7 @@ export const lessonsApi = {
   // Student - Lessons
   getLessons:          (topicId)                    => api.get(`/lessons/topics/${topicId}/lessons`),
   getLesson:           (lessonId)                   => api.get(`/lessons/lessons/${lessonId}`),
+  markLessonComplete:  (lessonId)                   => api.post(`/lessons/lessons/${lessonId}/complete`),
   
   // Student - Quizzes
   getQuizzes:          (topicId)                    => api.get(`/lessons/topics/${topicId}/quizzes`),
@@ -179,4 +180,12 @@ export const lessonsApi = {
   getQuizQuestions:    (quizId)                     => api.get(`/lessons/quizzes/${quizId}/questions`),
   submitQuiz:          (quizId, data)               => api.post(`/lessons/quizzes/${quizId}/attempt`, data),
   getQuizAttempts:     (quizId)                     => api.get(`/lessons/quizzes/${quizId}/attempts`),
+}
+
+// —— Progress Dashboard API ————————————————
+export const progressApi = {
+  overview: () => api.get('/progress/overview'),
+  subjects: () => api.get('/progress/subjects'),
+  activity: () => api.get('/progress/activity'),
+  quizzes:  () => api.get('/progress/quizzes'),
 }

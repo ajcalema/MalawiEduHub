@@ -65,6 +65,30 @@ const initTables = async () => {
       console.log('⚠️ schema_lessons.sql not found, skipping')
     }
 
+    const progressSchemaCandidates = [
+      path.join(__dirname, '../../database/schema_progress.sql'),
+      path.join(__dirname, '../../../database/schema_progress.sql'),
+    ]
+    const progressSchemaPath = progressSchemaCandidates.find(p => fs.existsSync(p))
+
+    if (progressSchemaPath) {
+      console.log('📄 Running schema_progress.sql...')
+      const sql = fs.readFileSync(progressSchemaPath, 'utf8')
+
+      try {
+        await pool.query(sql)
+        console.log('✅ Progress schema SQL executed successfully')
+      } catch (err) {
+        console.error('❌ Progress schema SQL execution failed:', err.message)
+        console.error('Error detail:', err.detail)
+        console.error('Error position:', err.position)
+      }
+
+      console.log('✅ Progress schema applied successfully')
+    } else {
+      console.log('⚠️ schema_progress.sql not found, skipping')
+    }
+
     console.log('✅ Database tables check complete\n')
   } catch (err) {
     console.error('❌ Failed to initialize tables:', err.message)

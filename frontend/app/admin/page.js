@@ -2028,7 +2028,6 @@ const loadData = async (opts = {}) => {
           {tab === 'users'      && <TabUsers       users={users} loading={loading} onSuspend={handleSuspend} />}
           {tab === 'revenue'    && <TabRevenue     revenue={revenue} loading={loading} />}
           {tab === 'settings'   && <TabSettings    settings={settings} loading={loading} onSave={handleSaveSetting} />}
-          
         </main>
       </div>
     </div>
