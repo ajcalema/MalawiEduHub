@@ -454,6 +454,28 @@ export default function DashboardPage() {
         {tab === 'overview' && (
           <div className="flex flex-col gap-5">
 
+            <Link
+              href="/dashboard/progress"
+              className="block rounded-3xl border border-green-200 bg-gradient-to-r from-green-50 via-emerald-50 to-white p-5 no-underline shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="min-w-0">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-green-700">
+                    <TrendingUp size={12} />
+                    Student Progress
+                  </div>
+                  <h2 className="mt-3 font-serif text-2xl text-gray-900">Open your learning progress dashboard</h2>
+                  <p className="mt-2 max-w-2xl text-sm text-gray-600">
+                    See completed lessons, quiz performance, recent activity, subject progress, and motivation insights in one place.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 self-start rounded-2xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white md:self-center">
+                  View progress
+                  <ChevronRight size={16} />
+                </div>
+              </div>
+            </Link>
+
             {/* Stats grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <StatCard icon={Upload}   label="Documents uploaded"  value={profile?.approved_upload_count || 0} sub="approved by admin" accent="green" />
@@ -479,6 +501,7 @@ export default function DashboardPage() {
                 </h2>
                 <div className="flex flex-col gap-2">
                   {[
+                    { href: '/dashboard/progress', icon: TrendingUp,   label: 'Learning progress',   sub: 'Track lessons, quizzes, and activity', accent: 'green' },
                     { href: '/learn',      icon: GraduationCap, label: 'MY CLASS',           sub: 'Structured learning by topic',   accent: 'green' },
                     { href: '/upload',     icon: Upload,       label: 'Upload a document',     sub: 'Contribute & earn free access',  accent: 'amber' },
                     { href: '/browse',     icon: BookOpen,     label: 'Browse library',         sub: 'Search past papers and notes',   accent: 'blue' },
