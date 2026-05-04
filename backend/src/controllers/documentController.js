@@ -2,6 +2,7 @@ const { query, getClient } = require('../config/db');
 const { uploadFile, downloadFile, deleteFile } = require('../config/supabase');
 const { runDuplicateDetection, computeFileHash } = require('../services/duplicateDetection');
 const { resolveOrCreateSubjectId } = require('../services/subjectResolve');
+const { recordUserActivity } = require('../services/activityService');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 
@@ -520,6 +521,13 @@ const downloadDocument = async (req, res) => {
        VALUES ($1,$2,$3,$4,$5)`,
       [req.user.id, id, paymentId, subscriptionId, req.ip]
     );
+
+    await recordUserActivity({
+      userId: req.user.id,
+      type: 'document',
+      referenceId: id,
+      description: `Downloaded ${doc.title}`,
+    });
 
     // Download from Supabase Storage
     try {

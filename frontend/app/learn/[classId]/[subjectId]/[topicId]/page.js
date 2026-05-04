@@ -57,6 +57,7 @@ export default function LearningRoomPage() {
   const [completed, setCompleted] = useState(false)
   const [loading,   setLoading]   = useState(true)
   const [marking,   setMarking]   = useState(false)
+  const [completingLessonId, setCompletingLessonId] = useState(null)
   const [accessDoc, setAccessDoc] = useState(null)
   const [activeTab, setActiveTab] = useState('lessons') // 'lessons', 'resources', 'quizzes'
   const [currentLesson, setCurrentLesson] = useState(0) // Index of current lesson being viewed
@@ -82,6 +83,7 @@ export default function LearningRoomPage() {
   const currentIndex = allTopics.findIndex(t => String(t.id) === String(topicId))
   const prevTopic    = currentIndex > 0 ? allTopics[currentIndex - 1] : null
   const nextTopic    = currentIndex < allTopics.length - 1 ? allTopics[currentIndex + 1] : null
+  const completedLessonsCount = lessons.filter(lesson => lesson.completed).length
 
   const handleMarkComplete = async () => {
     setMarking(true)
@@ -99,6 +101,30 @@ export default function LearningRoomPage() {
       }
     } catch { toast.error('Failed to save progress.') }
     finally { setMarking(false) }
+  }
+
+  const handleMarkLessonComplete = async () => {
+    const lesson = lessons[currentLesson]
+    if (!lesson || lesson.completed) return
+
+    setCompletingLessonId(lesson.id)
+    try {
+      const { data: result } = await lessonsApi.markLessonComplete(lesson.id)
+      setLessons((prev) => prev.map((item) => (
+        item.id === lesson.id
+          ? {
+              ...item,
+              completed: true,
+              completed_at: result.completed_at || new Date().toISOString(),
+            }
+          : item
+      )))
+      toast.success('Lesson completed. Nice work!')
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'Failed to save lesson progress.')
+    } finally {
+      setCompletingLessonId(null)
+    }
   }
 
   const handleDownload = async (doc) => {
@@ -333,8 +359,13 @@ export default function LearningRoomPage() {
                       </p>
                     )}
                   </div>
-                  <div className="text-xs text-gray-500 font-semibold">
-                    Lesson {currentLesson + 1} of {lessons.length}
+                  <div className="text-right">
+                    <div className="text-xs text-gray-500 font-semibold">
+                      Lesson {currentLesson + 1} of {lessons.length}
+                    </div>
+                    <div className="text-[11px] text-blue-600 font-semibold mt-1">
+                      {completedLessonsCount} / {lessons.length} completed
+                    </div>
                   </div>
                 </div>
                 
@@ -443,7 +474,24 @@ export default function LearningRoomPage() {
 
               {/* Lesson Navigation */}
               <div className="border-t border-gray-100 px-6 py-4 bg-gray-50">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <button
+                    onClick={handleMarkLessonComplete}
+                    disabled={!lessons[currentLesson] || lessons[currentLesson]?.completed || completingLessonId === lessons[currentLesson]?.id}
+                    className={`flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl transition-all ${
+                      lessons[currentLesson]?.completed
+                        ? 'bg-emerald-100 text-emerald-700 cursor-default'
+                        : 'bg-emerald-500 text-white hover:bg-emerald-400'
+                    } disabled:opacity-70 disabled:cursor-not-allowed`}>
+                    {completingLessonId === lessons[currentLesson]?.id ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <CheckCircle2 size={16} />
+                    )}
+                    {lessons[currentLesson]?.completed ? 'Lesson completed' : 'Mark lesson complete'}
+                  </button>
+
+                  <div className="flex items-center justify-between gap-4 md:flex-1">
                   <button 
                     onClick={() => setCurrentLesson(Math.max(0, currentLesson - 1))}
                     disabled={currentLesson === 0}
@@ -479,6 +527,7 @@ export default function LearningRoomPage() {
                     Next Lesson
                     <ChevronRight size={16} />
                   </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -513,9 +562,14 @@ export default function LearningRoomPage() {
                         }`}>
                           {lesson.title}
                         </p>
-                        {lesson.duration_minutes && (
-                          <p className="text-xs text-gray-400 mt-0.5">{lesson.duration_minutes} min</p>
-                        )}
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {lesson.duration_minutes && (
+                            <p className="text-xs text-gray-400">{lesson.duration_minutes} min</p>
+                          )}
+                          {lesson.completed && (
+                            <span className="text-[11px] font-semibold text-emerald-600">Completed</span>
+                          )}
+                        </div>
                       </div>
                       {idx === currentLesson && (
                         <div className="w-2 h-2 rounded-full bg-blue-500" />

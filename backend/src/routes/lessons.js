@@ -36,8 +36,10 @@
 
 const express = require('express')
 const router = express.Router()
-const { query } = require('../config/db')
+const { query, getClient } = require('../config/db')
 const { requireAuth, requireAdmin } = require('../middleware/auth')
+const { recordUserActivity } = require('../services/activityService')
+const { markLessonCompleted } = require('../services/progressService')
 
 // ═══════════════════════════════════════════════════
 // ADMIN — LESSONS
@@ -408,11 +410,17 @@ router.delete('/admin/questions/:questionId/answers/:answerId', requireAuth, req
 router.get('/topics/:topicId/lessons', requireAuth, async (req, res) => {
   try {
     const result = await query(
-      `SELECT id, title, content, content_html, video_url, sort_order, duration_minutes, material_count
-       FROM v_lessons_full
-       WHERE topic_id = $1 AND is_active = TRUE
-       ORDER BY sort_order`,
-      [req.params.topicId]
+      `SELECT
+          vlf.id, vlf.title, vlf.content, vlf.content_html, vlf.video_url, vlf.sort_order, vlf.duration_minutes, vlf.material_count,
+          (lc.id IS NOT NULL) AS completed,
+          lc.completed_at
+       FROM v_lessons_full vlf
+       LEFT JOIN lesson_completions lc
+         ON lc.lesson_id = vlf.id
+        AND lc.user_id = $2
+       WHERE vlf.topic_id = $1 AND vlf.is_active = TRUE
+       ORDER BY vlf.sort_order`,
+      [req.params.topicId, req.user.id]
     )
     res.json(result.rows)
   } catch (err) {
@@ -425,10 +433,16 @@ router.get('/topics/:topicId/lessons', requireAuth, async (req, res) => {
 router.get('/lessons/:lessonId', requireAuth, async (req, res) => {
   try {
     const lessonResult = await query(
-      `SELECT id, title, content, content_html, video_url, duration_minutes, material_count
-       FROM v_lessons_full
-       WHERE id = $1 AND is_active = TRUE`,
-      [req.params.lessonId]
+      `SELECT
+          vlf.id, vlf.title, vlf.content, vlf.content_html, vlf.video_url, vlf.duration_minutes, vlf.material_count,
+          (lc.id IS NOT NULL) AS completed,
+          lc.completed_at
+       FROM v_lessons_full vlf
+       LEFT JOIN lesson_completions lc
+         ON lc.lesson_id = vlf.id
+        AND lc.user_id = $2
+       WHERE vlf.id = $1 AND vlf.is_active = TRUE`,
+      [req.params.lessonId, req.user.id]
     )
     if (!lessonResult.rows[0]) {
       return res.status(404).json({ error: 'Lesson not found.' })
@@ -451,6 +465,51 @@ router.get('/lessons/:lessonId', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Error fetching lesson:', err)
     res.status(500).json({ error: 'Failed to fetch lesson.' })
+  }
+})
+
+// MARK a lesson as completed
+router.post('/lessons/:lessonId/complete', requireAuth, async (req, res) => {
+  const client = await getClient()
+  try {
+    await client.query('BEGIN')
+
+    const result = await markLessonCompleted(client, {
+      userId: req.user.id,
+      lessonId: req.params.lessonId,
+    })
+
+    if (result.notFound) {
+      await client.query('ROLLBACK')
+      return res.status(404).json({ error: 'Lesson not found.' })
+    }
+
+    if (result.inserted) {
+      await recordUserActivity(client, {
+        userId: req.user.id,
+        type: 'lesson',
+        referenceId: result.lesson.id,
+        description: `Completed lesson: ${result.lesson.title}`,
+      })
+    }
+
+    await client.query('COMMIT')
+
+    res.json({
+      success: true,
+      already_completed: !result.inserted,
+      lesson_id: result.lesson.id,
+      topic_id: result.lesson.topic_id,
+      subject_id: result.lesson.subject_id,
+      completed_at: result.completedAt,
+      message: result.inserted ? 'Lesson marked as completed.' : 'Lesson already completed.',
+    })
+  } catch (err) {
+    await client.query('ROLLBACK')
+    console.error('Error marking lesson complete:', err)
+    res.status(500).json({ error: 'Failed to mark lesson as completed.' })
+  } finally {
+    client.release()
   }
 })
 
@@ -548,7 +607,7 @@ router.post('/quizzes/:quizId/attempt', requireAuth, async (req, res) => {
 
     // Get quiz info
     const quizResult = await query(
-      `SELECT id, passing_score FROM quizzes WHERE id = $1 AND is_active = TRUE`,
+      `SELECT id, title, passing_score FROM quizzes WHERE id = $1 AND is_active = TRUE`,
       [req.params.quizId]
     )
     if (!quizResult.rows[0]) {
@@ -608,6 +667,13 @@ router.post('/quizzes/:quizId/attempt', requireAuth, async (req, res) => {
         [attemptId, answerResult.question_id, answerResult.answer_text, answerResult.is_correct]
       )
     }
+
+    await recordUserActivity({
+      userId: req.user.id,
+      type: 'quiz',
+      referenceId: req.params.quizId,
+      description: `Scored ${score}% in ${quizResult.rows[0].title}`,
+    })
 
     res.json({
       success: true,
